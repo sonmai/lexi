@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowRight, BookA, BookOpen, Check, ChevronRight, Command,
+  ArrowDownToLine, ArrowRight, BookA, BookOpen, Check, ChevronRight, Command,
   Languages, Search, Volume2, WifiOff, X
 } from 'lucide-react'
-import { byHeadword, dictionary, normalise, searchHeadwords } from './data/dictionary'
+import { downloadForOffline, getManifest, loadWords, lookupWord, offlineProgress, suggest } from './dictionary-service'
 import type { DictionaryEntry, Sense } from './data/types'
 
 const featuredWords = ['example', 'clarity', 'context', 'resilience', 'balance']
@@ -96,15 +96,35 @@ export default function App() {
   const [isFocused, setIsFocused] = useState(false)
   const [activeSuggestion, setActiveSuggestion] = useState(0)
   const [canSpeak, setCanSpeak] = useState(false)
+  const [headwords, setHeadwords] = useState<string[]>([])
+  const [entry, setEntry] = useState<DictionaryEntry | null>(null)
+  const [busy, setBusy] = useState(true)
+  const [error, setError] = useState('')
+  const [loadedCount, setLoadedCount] = useState(0)
+  const [offlineState, setOfflineState] = useState({ saved: 0, total: 0 })
+  const [downloading, setDownloading] = useState(false)
+  const [downloadError, setDownloadError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
 
-  const suggestions = useMemo(() => searchHeadwords(query), [query])
-  const entry = byHeadword.get(normalise(selected))
+  const suggestions = useMemo(() => suggest(headwords, query), [headwords, query])
   const displaySuggestions = isFocused && query.trim().length > 0
 
   useEffect(() => {
     setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window)
+    let active = true
+    void (async () => {
+      try {
+        const words = await loadWords()
+        if (!active) return
+        setHeadwords(words)
+        const manifest = await getManifest()
+        if (active) setLoadedCount(manifest?.count || words.length)
+        if (active) setOfflineState(await offlineProgress())
+      } catch (reason) {
+        if (active) setError(reason instanceof Error ? reason.message : 'Unable to load dictionary index.')
+      }
+    })()
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
@@ -124,10 +144,43 @@ export default function App() {
     document.addEventListener('keydown', onKey)
     document.addEventListener('pointerdown', onOutside)
     return () => {
+      active = false
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('pointerdown', onOutside)
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setBusy(true)
+    setError('')
+    void lookupWord(selected).then((value) => {
+      if (!cancelled) setEntry(value)
+    }).catch((reason) => {
+      if (!cancelled) {
+        setError(reason instanceof Error ? reason.message : 'Unable to load this word.')
+        setEntry(null)
+      }
+    }).finally(() => {
+      if (!cancelled) setBusy(false)
+    })
+    return () => { cancelled = true }
+  }, [selected])
+
+  const downloadAll = async () => {
+    setDownloading(true)
+    setDownloadError('')
+    try {
+      await downloadForOffline((saved, total) => setOfflineState({ saved, total }))
+      setOfflineState(await offlineProgress())
+    } catch (reason) {
+      setDownloadError(reason instanceof Error ? reason.message : 'Offline download failed.')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  const offlineReady = offlineState.total > 0 && offlineState.saved === offlineState.total
 
   const selectWord = (headword: string) => {
     setSelected(headword)
@@ -139,7 +192,7 @@ export default function App() {
   }
 
   const submitSearch = () => {
-    const candidate = suggestions[activeSuggestion]?.headword ?? query.trim()
+    const candidate = suggestions[activeSuggestion] ?? query.trim()
     if (candidate) selectWord(candidate)
   }
 
@@ -215,22 +268,32 @@ export default function App() {
             <div className="suggestion-popover" id="word-suggestions" role="listbox" aria-label="Suggested words">
               {suggestions.length > 0 ? suggestions.map((result, index) => (
                 <button
-                  key={result.headword}
+                  key={result}
                   className={`suggestion ${activeSuggestion === index ? 'suggestion-active' : ''}`}
                   type="button"
                   role="option"
                   aria-selected={activeSuggestion === index}
                   onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => selectWord(result.headword)}
+                  onClick={() => selectWord(result)}
                 >
-                  <BookOpen size={16}/><span>{result.headword}</span><ArrowRight size={16}/>
+                  <BookOpen size={16}/><span>{result}</span><ArrowRight size={16}/>
                 </button>
               )) : (
-                <div className="suggestion-empty">No matching word in the demo dataset.</div>
+                <div className="suggestion-empty">No matching word.</div>
               )}
             </div>
           )}
         </div>
+
+        <div className="data-toolbar">
+          <div className="dictionary-size"><BookOpen size={15}/>{loadedCount ? loadedCount.toLocaleString('en') + ' headwords' : 'Loading dictionary...'}</div>
+          <button type="button" className="offline-button" disabled={downloading || offlineReady || !offlineState.total}
+            onClick={() => void downloadAll()}>
+            {offlineReady ? <Check size={15}/> : <ArrowDownToLine size={15}/>}
+            {offlineReady ? 'Available offline' : downloading ? 'Downloading ' + offlineState.saved + '/' + offlineState.total : 'Download for offline use'}
+          </button>
+        </div>
+        {downloadError && <p role="alert" className="data-error">{downloadError}</p>}
 
         <div className="workspace">
           <aside className="sidebar" aria-label="Dictionary shortcuts">
@@ -250,24 +313,28 @@ export default function App() {
             <div className="sidebar-bottom">
               <div className="sidebar-bottom-icon"><WifiOff size={18}/></div>
               <strong>Made for offline moments.</strong>
-              <p>Install this website to revisit words without an internet connection after caching.</p>
+              <p>Download the complete dictionary to look up words without internet.</p>
             </div>
           </aside>
 
           <section className="result-panel" aria-live="polite">
-            {entry ? (
+            {busy ? (
+              <div className="not-found"><h1>Looking up word...</h1></div>
+            ) : error ? (
+              <div className="not-found"><h1>Dictionary unavailable</h1><p role="alert">{error}</p></div>
+            ) : entry ? (
               <EntryView entry={entry} onSpeak={pronounce} />
             ) : (
               <div className="not-found">
                 <div className="not-found-icon"><Search size={26}/></div>
                 <h1>No entry found</h1>
-                <p>“{selected}” isn't in the small demo dataset yet. Try one of the suggested words.</p>
+                <p>“{selected}” isn't in the current dictionary. Check the spelling or try a suggested word.</p>
                 <button type="button" onClick={() => selectWord('example')}>Explore “example” <ArrowRight size={16}/></button>
               </div>
             )}
             <div className="panel-footer">
               <div><Check size={15}/><span>English + Vietnamese in one place</span></div>
-              <span>Prototype · {dictionary.length} curated entries</span>
+              <span>{offlineState.total ? 'Open dictionary data' : 'Prototype data'}</span>
             </div>
           </section>
         </div>
@@ -275,7 +342,7 @@ export default function App() {
 
       <footer className="footer">
         <span>lexi<span className="brand-period">.</span></span>
-        <span>Thoughtfully simple. © {new Date().getFullYear()}</span>
+        <a href="/sources.html" target="_blank" rel="noreferrer">Data sources &amp; licences</a>
       </footer>
     </div>
   )
