@@ -1,0 +1,314 @@
+[
+  {
+    "headword": "adapt",
+    "ipa": "/əˈdæpt/",
+    "vi": [
+      {
+        "partOfSpeech": "Động từ",
+        "definition": "Thích nghi; điều chỉnh để phù hợp với hoàn cảnh mới.",
+        "example": "We need to adapt to change.",
+        "exampleTranslation": "Chúng ta cần thích nghi với sự thay đổi."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "verb",
+        "definition": "To change your behaviour or ideas to suit a new situation.",
+        "example": "Animals adapt to their environment."
+      }
+    ]
+  },
+  {
+    "headword": "balance",
+    "ipa": "/ˈbæl.əns/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Sự cân bằng; trạng thái ổn định giữa các yếu tố."
+      },
+      {
+        "partOfSpeech": "Động từ",
+        "definition": "Giữ hoặc tạo ra sự cân bằng."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "A situation in which different things are in equal or appropriate proportions."
+      },
+      {
+        "partOfSpeech": "verb",
+        "definition": "To keep two or more things in a steady or fair relationship."
+      }
+    ]
+  },
+  {
+    "headword": "clarity",
+    "ipa": "/ˈklær.ə.ti/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Sự rõ ràng, dễ hiểu hoặc dễ nhận thấy.",
+        "example": "The explanation lacks clarity.",
+        "exampleTranslation": "Lời giải thích thiếu sự rõ ràng."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "The quality of being clear and easy to understand."
+      }
+    ]
+  },
+  {
+    "headword": "context",
+    "ipa": "/ˈkɒn.tekst/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Bối cảnh; các điều kiện và thông tin giúp hiểu một sự việc."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "The circumstances surrounding an event, statement or idea that help explain its meaning."
+      }
+    ]
+  },
+  {
+    "headword": "design",
+    "ipa": "/dɪˈzaɪn/",
+    "vi": [
+      {
+        "partOfSpeech": "Động từ",
+        "definition": "Thiết kế; lên kế hoạch về hình thức hoặc chức năng của thứ gì đó."
+      },
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Bản thiết kế; kiểu dáng hoặc cách sắp xếp."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "verb",
+        "definition": "To plan or create something with a particular purpose in mind."
+      },
+      {
+        "partOfSpeech": "noun",
+        "definition": "A plan, arrangement or appearance of something."
+      }
+    ]
+  },
+  {
+    "headword": "discover",
+    "ipa": "/dɪˈskʌv.ər/",
+    "vi": [
+      {
+        "partOfSpeech": "Động từ",
+        "definition": "Khám phá; tìm ra điều chưa biết trước đó."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "verb",
+        "definition": "To find information, a place or an object for the first time."
+      }
+    ]
+  },
+  {
+    "headword": "evidence",
+    "ipa": "/ˈev.ɪ.dəns/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Bằng chứng; thông tin hoặc sự việc dùng để chứng minh điều gì đó."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "Facts, signs or information that support whether something is true."
+      }
+    ]
+  },
+  {
+    "headword": "example",
+    "ipa": "/ɪɡˈzɑːm.pəl/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Ví dụ, thí dụ; điều được đưa ra để minh họa hoặc giải thích.",
+        "example": "Can you give me an example?",
+        "exampleTranslation": "Bạn có thể cho tôi một ví dụ không?"
+      },
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Hình mẫu; người hoặc vật được coi là đáng noi theo."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "Something used to explain or illustrate an idea, rule or situation.",
+        "example": "This sentence is an example of the word in use."
+      },
+      {
+        "partOfSpeech": "noun",
+        "definition": "A person or thing regarded as a model to follow."
+      }
+    ]
+  },
+  {
+    "headword": "future",
+    "ipa": "/ˈfjuː.tʃər/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Tương lai; khoảng thời gian sẽ đến."
+      },
+      {
+        "partOfSpeech": "Tính từ",
+        "definition": "Thuộc về thời gian sắp tới."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "The time that comes after the present."
+      },
+      {
+        "partOfSpeech": "adjective",
+        "definition": "Expected to happen or exist later."
+      }
+    ]
+  },
+  {
+    "headword": "language",
+    "ipa": "/ˈlæŋ.ɡwɪdʒ/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Ngôn ngữ; hệ thống từ ngữ và quy tắc dùng để giao tiếp."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "A system of words, sounds or signs used by people to communicate."
+      }
+    ]
+  },
+  {
+    "headword": "meaning",
+    "ipa": "/ˈmiː.nɪŋ/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Ý nghĩa; nội dung mà từ ngữ hoặc hành động biểu đạt."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "The idea or message represented by a word, action or sign."
+      }
+    ]
+  },
+  {
+    "headword": "resilience",
+    "ipa": "/rɪˈzɪl.i.əns/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Khả năng phục hồi, thích ứng sau khó khăn hoặc gián đoạn."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "The ability to recover after difficulties or disruption."
+      }
+    ]
+  },
+  {
+    "headword": "search",
+    "ipa": "/sɜːtʃ/",
+    "vi": [
+      {
+        "partOfSpeech": "Động từ",
+        "definition": "Tìm kiếm; cố gắng tìm một người, vật hoặc thông tin."
+      },
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Cuộc tìm kiếm; hành động tìm."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "verb",
+        "definition": "To look carefully for something or someone."
+      },
+      {
+        "partOfSpeech": "noun",
+        "definition": "An attempt to find something or information."
+      }
+    ]
+  },
+  {
+    "headword": "simple",
+    "ipa": "/ˈsɪm.pəl/",
+    "vi": [
+      {
+        "partOfSpeech": "Tính từ",
+        "definition": "Đơn giản; không phức tạp hoặc khó hiểu."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "adjective",
+        "definition": "Easy to understand, use or do; not complicated."
+      }
+    ]
+  },
+  {
+    "headword": "trust",
+    "ipa": "/trʌst/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Sự tin tưởng; niềm tin vào một người hoặc điều gì đó."
+      },
+      {
+        "partOfSpeech": "Động từ",
+        "definition": "Tin tưởng; cho rằng ai đó đáng tin."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "A firm belief that someone or something is reliable."
+      },
+      {
+        "partOfSpeech": "verb",
+        "definition": "To believe that someone is honest, good or dependable."
+      }
+    ]
+  },
+  {
+    "headword": "word",
+    "ipa": "/wɜːd/",
+    "vi": [
+      {
+        "partOfSpeech": "Danh từ",
+        "definition": "Từ; đơn vị ngôn ngữ có nghĩa."
+      }
+    ],
+    "en": [
+      {
+        "partOfSpeech": "noun",
+        "definition": "A single unit of language that has meaning and can be spoken or written."
+      }
+    ]
+  }
+]
