@@ -138,3 +138,15 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* Dictionary dataset and explicit offline download */
+.data-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -21px 0 26px; font-size: 12px; color: #7a8499; }
+.dictionary-size { display: flex; align-items: center; gap: 7px; }
+.offline-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 9px; background: #eeefff; color: #525ad2; border: 1px solid #e1e4fd; padding: 10px 13px; font-weight: 690; font-size: 12px; }
+.offline-button:hover:not(:disabled) { background: #e3e5ff; }
+.offline-button:disabled { opacity: .74; cursor: default; }
+.data-error { color: #b63745; font-size: 12px; margin: -15px 0 20px; }
+@media (max-width: 660px) {
+  .data-toolbar { flex-wrap: wrap; margin: -10px 0 20px; }
+  .offline-button { min-height: 40px; }
+}
