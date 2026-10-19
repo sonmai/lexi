@@ -73,14 +73,14 @@ function DictionaryResult({
   return (
     <article className="dictionary-result">
       <div className="entry-heading">
-        <div>
+        <div className="headword-line">
           <h2>{entry.headword}</h2>
           {(entry.ipaUk || entry.ipaUs) ? (
-            <div className="pronunciation-variants">
-              {entry.ipaUk && <p className="ipa"><span className="ipa-region">UK</span>{entry.ipaUk}</p>}
-              {entry.ipaUs && <p className="ipa"><span className="ipa-region">US</span>{entry.ipaUs}</p>}
+            <div className="pronunciation-variants" aria-label="Phiên âm tiếng Anh">
+              {entry.ipaUk && <span className="ipa"><span className="ipa-region">UK</span>{entry.ipaUk}</span>}
+              {entry.ipaUs && <span className="ipa"><span className="ipa-region">US</span>{entry.ipaUs}</span>}
             </div>
-          ) : entry.ipa ? <p className="ipa">{entry.ipa}</p> : null}
+          ) : entry.ipa ? <span className="ipa">{entry.ipa}</span> : null}
         </div>
         <button
           type="button"
