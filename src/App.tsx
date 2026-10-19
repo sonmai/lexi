@@ -6,6 +6,7 @@ import {
   downloadForOffline, getManifest, loadWords, lookupWord, offlineProgress, suggest,
 } from './dictionary-service'
 import type { DictionaryEntry, Sense } from './data/types'
+import { groupSensesByPartOfSpeech } from './utils/partOfSpeech'
 
 const sourceLabels: Record<string, string> = {
   skypedia: 'Skypedia', viwiktionary: 'Wiktionary Việt',
@@ -22,32 +23,43 @@ function DefinitionList({ senses, language }: { senses: Sense[]; language: 'vi' 
     return <p className="empty-language">Chưa có định nghĩa {language === 'vi' ? 'tiếng Việt' : 'tiếng Anh'} cho từ này.</p>
   }
 
+  const groups = groupSensesByPartOfSpeech(senses, language)
+
   return (
-    <ol className="sense-list">
-      {senses.map((sense, index) => (
-        <li className="sense-item" key={index}>
-          <span className="sense-index" aria-hidden="true">{index + 1}.</span>
-          <div className="sense-copy">
-            <span className="part-of-speech">{sense.partOfSpeech}</span>
-            <p className="sense-definition">{sense.definition}</p>
-            {sense.tags && sense.tags.length > 0 && (
-              <div className="usage-labels">{sense.tags.map((tag) => (
-                <span key={tag} className="usage-label">{tag}</span>
-              ))}</div>
-            )}
-            {sense.example && (
-              <div className="sense-example">
-                <p>{sense.example}</p>
-                {sense.exampleTranslation && (
-                  <p className="example-translation">{sense.exampleTranslation}</p>
-                )}
-              </div>
-            )}
-            {sense.source && <p className="sense-source">{sourceLabels[sense.source] || sense.source}</p>}
-          </div>
-        </li>
+    <div className="pos-groups">
+      {groups.map((group) => (
+        <section className="pos-group" key={group.key} aria-label={group.label}>
+          <h4 className="pos-heading">{group.label}</h4>
+          <ol className="sense-list">
+            {group.senses.map((sense, index) => (
+              <li className="sense-item" key={index}>
+                <span className="sense-index" aria-hidden="true">{index + 1}.</span>
+                <div className="sense-copy">
+                  <p className="sense-definition">{sense.definition}</p>
+                  {group.key === 'other' && sense.partOfSpeech && sense.partOfSpeech !== 'other' && (
+                    <span className="sense-original-pos">{sense.partOfSpeech}</span>
+                  )}
+                  {sense.tags && sense.tags.length > 0 && (
+                    <div className="usage-labels">{sense.tags.map((tag) => (
+                      <span key={tag} className="usage-label">{tag}</span>
+                    ))}</div>
+                  )}
+                  {sense.example && (
+                    <div className="sense-example">
+                      <p>{sense.example}</p>
+                      {sense.exampleTranslation && (
+                        <p className="example-translation">{sense.exampleTranslation}</p>
+                      )}
+                    </div>
+                  )}
+                  {sense.source && <p className="sense-source">{sourceLabels[sense.source] || sense.source}</p>}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
       ))}
-    </ol>
+    </div>
   )
 }
 
