@@ -63,35 +63,66 @@ function DefinitionList({ senses, language }: { senses: Sense[]; language: 'vi' 
   )
 }
 
+type Accent = 'en-GB' | 'en-US'
+
+function PronunciationItem({
+  ipa, accent, word, speak, canSpeak, label,
+}: {
+  ipa?: string
+  accent: Accent
+  word: string
+  speak: (accent: Accent) => void
+  canSpeak: boolean
+  label?: string
+}) {
+  const localeLabel = label || 'English'
+  return (
+    <div className="pronunciation-item">
+      {ipa && <span className="pronunciation-ipa">{ipa}</span>}
+      {label && <span className="pronunciation-accent">{label}</span>}
+      <button
+        type="button"
+        className="pronunciation-play"
+        onClick={() => speak(accent)}
+        aria-label={`Phát âm ${word} – ${localeLabel}`}
+        title={`Nghe phát âm ${localeLabel}`}
+        disabled={!canSpeak}
+      >
+        <Volume2 size={19} strokeWidth={1.9} aria-hidden="true" />
+      </button>
+    </div>
+  )
+}
+
 function DictionaryResult({
   entry, speak, canSpeak,
 }: {
   entry: DictionaryEntry
-  speak: () => void
+  speak: (accent: Accent) => void
   canSpeak: boolean
 }) {
+  const hasRegionalIPA = Boolean(entry.ipaUk || entry.ipaUs)
   return (
     <article className="dictionary-result">
       <div className="entry-heading">
-        <div className="headword-line">
-          <h2>{entry.headword}</h2>
-          {(entry.ipaUk || entry.ipaUs) ? (
-            <div className="pronunciation-variants" aria-label="Phiên âm tiếng Anh">
-              {entry.ipaUk && <span className="ipa"><span className="ipa-region">UK</span>{entry.ipaUk}</span>}
-              {entry.ipaUs && <span className="ipa"><span className="ipa-region">US</span>{entry.ipaUs}</span>}
-            </div>
-          ) : entry.ipa ? <span className="ipa">{entry.ipa}</span> : null}
+        <h2>{entry.headword}</h2>
+        <div className="entry-pronunciations" aria-label="Phiên âm và phát âm tiếng Anh">
+          {hasRegionalIPA ? (
+            <>
+              {entry.ipaUk && (
+                <PronunciationItem ipa={entry.ipaUk} accent="en-GB" word={entry.headword}
+                  label="UK" speak={speak} canSpeak={canSpeak} />
+              )}
+              {entry.ipaUs && (
+                <PronunciationItem ipa={entry.ipaUs} accent="en-US" word={entry.headword}
+                  label="US" speak={speak} canSpeak={canSpeak} />
+              )}
+            </>
+          ) : (
+            <PronunciationItem ipa={entry.ipa} accent="en-GB" word={entry.headword}
+              speak={speak} canSpeak={canSpeak} />
+          )}
         </div>
-        <button
-          type="button"
-          className="pronounce-button"
-          onClick={speak}
-          aria-label={'Phát âm ' + entry.headword}
-          title="Phát âm tiếng Anh"
-          disabled={!canSpeak}
-        >
-          <Volume2 size={21} strokeWidth={1.8} />
-        </button>
       </div>
       <div className="definition-columns">
         <section className="definition-column" aria-labelledby="vi-heading">
@@ -220,12 +251,17 @@ export default function App() {
     if (window.location.search !== url.search) window.history.pushState({}, '', url)
   }
 
-  function speakWord() {
+  function speakWord(accent: Accent) {
     if (!entry || !canSpeak) return
     window.speechSynthesis.cancel()
     const speech = new SpeechSynthesisUtterance(entry.headword)
-    speech.lang = 'en-GB'
+    speech.lang = accent
     speech.rate = 0.9
+    // Prefer a matching installed voice. If missing, browser TTS uses its fallback.
+    const availableVoice = window.speechSynthesis.getVoices().find(
+      (voice) => voice.lang.toLowerCase() === accent.toLowerCase(),
+    )
+    if (availableVoice) speech.voice = availableVoice
     window.speechSynthesis.speak(speech)
   }
 
