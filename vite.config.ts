@@ -33,7 +33,7 @@ export default defineConfig({
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/dictionary/data/'),
             handler: 'CacheFirst',
-            options: { cacheName: 'lexi-dictionary-v1' }
+            options: { cacheName: 'lexi-dictionary-v2' }
           }
         ]
       }
