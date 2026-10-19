@@ -139,8 +139,13 @@ a { color: inherit; text-decoration: none; }
 .dictionary-result { padding: 32px 0 0; }
 .entry-heading {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 24px; padding-bottom: 32px;
+  gap: 16px; padding-bottom: 32px;
 }
+.headword-line {
+  display: flex; flex: 1 1 auto; min-width: 0; align-items: baseline;
+  flex-wrap: wrap; column-gap: 20px; row-gap: 4px;
+}
+.headword-line > .ipa { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .entry-heading h2 {
   margin: 0; font-size: clamp(39px, 4.6vw, 53px);
   letter-spacing: -2.3px; font-weight: 730;
@@ -269,6 +274,8 @@ a { color: inherit; text-decoration: none; }
   .utility-row { gap: 8px; }
   .offline-action { font-size: 12px; padding: 9px 5px; }
   .entry-heading { padding: 27px 0 25px; gap: 12px; }
+  .headword-line { column-gap: 12px; row-gap: 2px; }
+  .pronunciation-variants { column-gap: 10px; }
   .entry-heading h2 { font-size: 42px; letter-spacing: -1.8px; }
   .ipa { margin-top: 9px; font-size: 15px; }
   .sense-item { margin-bottom: 20px; }
@@ -281,8 +288,8 @@ a { color: inherit; text-decoration: none; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
-.pronunciation-variants { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: baseline; margin: 11px 0 0; }
-.pronunciation-variants .ipa { margin: 0; }
+.pronunciation-variants { display: inline-flex; flex-wrap: wrap; column-gap: 14px; row-gap: 3px; align-items: baseline; margin: 0; min-width: 0; }
+.pronunciation-variants .ipa { margin: 0; white-space: normal; overflow-wrap: anywhere; }
 .ipa-region { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-right: 5px; }
 .usage-labels { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
 .usage-label { font-size: 11px; color: var(--text-secondary); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; }
