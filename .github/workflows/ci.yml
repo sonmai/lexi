@@ -16,5 +16,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm install
+      - run: node --experimental-strip-types --test tests/partOfSpeech.test.mjs
       - run: npm run build
       - run: python3 scripts/test_dictionary.py
