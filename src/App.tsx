@@ -415,7 +415,7 @@ export default function App() {
             </div>
           )}
         </div>
-        {entry && nearbyWords.length > 0 && (
+        {!loading && entry && nearbyWords.length > 0 && (
           <nav className="related-lookup" aria-label="Các từ có cùng tiền tố">
             <h3>Các từ bắt đầu bằng “{entry.headword}”</h3>
             <div className="related-words">
