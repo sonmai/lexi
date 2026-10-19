@@ -1,52 +1,54 @@
-# Lexi · English Dictionary
+# Lexi — English Dictionary PWA
 
-A clean, offline-first **English–Vietnamese + English–English** dictionary PWA designed for iPhone and MacBook, using a single React codebase.
+A personal, offline-first English–Vietnamese and English–English dictionary built with React, TypeScript, Vite, and Cloudflare Workers static assets.
 
-## Status
+**Live:** https://lexi.wellprep.top
 
-**Design prototype.** The app currently ships **16 original demonstration entries** to validate layout, search, bilingual definitions, pronunciation, accessibility, and PWA caching. It does **not** yet ship a production dictionary dataset.
+## Dictionary data
 
-## Run locally
+The production build currently assembles **200k+ English words/phrases** from four attributed sources:
 
-Requires Node.js 22+.
+- Skypedia English–Vietnamese Dictionary (enriched Vietnamese definitions, learner examples, idioms and phrasal verbs).
+- Vietnamese Wiktionary through Kaikki (additional Vietnamese meanings).
+- Simple English Wiktionary through Kaikki (English definitions, examples, usage labels and IPA).
+- Open English WordNet 2025 (additional English definitions).
+
+The dataset is generated during deployment and may change upstream. Lexi displays English and Vietnamese sense lists independently, with a source label on each meaning. Examples from Skypedia may be generated and have not been independently verified. See [data provenance, licensing and offline technical notes](docs/DATA_SOURCES.md) and the [attribution page](public/sources.html).
+
+## Local development
+
+Requires Node.js 22+ and Python 3.12+.
 
 ```bash
 npm install
-npm run dev
-```
-
-Open the local Vite URL shown in the terminal.
-
-```bash
-npm run typecheck
 npm run build
+python3 scripts/test_dictionary.py
 npm run preview
 ```
 
-Use `npm run preview` (production build) to verify service-worker/offline behaviour. Service workers are not active in the normal Vite dev experience.
+To start the UI using the original 16 demo entries without downloading dictionaries, use `npm run dev` in a clean checkout or `LEXI_SKIP_IMPORT=1 npm run build` for the local demo build. The data importer runs automatically before production builds.
 
-## Features in prototype
+## Usage
 
-- One search field with live headword suggestions and keyboard arrow navigation
-- English–Vietnamese and English–English definitions shown together
-- IPA when available and system text-to-speech
-- Responsive phone/desktop layout and Cmd/Ctrl+K shortcut
-- Installable PWA manifest and precached bundled demo definitions
-- No backend, authentication, analytics, or paid APIs
+- Search with autocomplete, arrow keys, Enter and Cmd/Ctrl+K.
+- Read English–Vietnamese and English–English meanings together.
+- View available UK/US IPA, word examples and source tags.
+- Use Web Speech system pronunciation, if supported.
+- Optional download for offline lookups. Browsers may evict cached data.
 
-## Deployment to Cloudflare Pages
+## Deployment
 
-Connect this GitHub repository to **Workers & Pages → Create → Pages → Connect to Git**.
+Cloudflare **Workers** (static assets) is connected to the `main` branch. Wrangler is configured in `wrangler.jsonc`.
 
-- Framework preset: **Vite**
 - Build command: `npm run build`
-- Build output directory: `dist`
-- Root directory: repository root
+- Deploy command: `npx wrangler deploy`
+- Assets output: `dist/`
+- Public URL: `lexi.wellprep.top`
 
-Cloudflare will allocate a `<project>.pages.dev` domain. Check its availability before committing to a name.
+This project does not use a backend, user accounts, external runtime dictionary API or paid data service.
 
-## Planned next step: production data
+## Important licence note
 
-Replace the demo data with separately sourced and legally reviewed dictionaries. Store source/licence/attribution metadata, generate indexed static chunks, and design offline download/updates before including large data files.
+Skypedia states CC BY-SA 4.0 and supplies [attribution](public/dictionary-sources/SKYPEDIA_ATTRIBUTION.md). Its source material includes MinhQND and several other upstream datasets; its attribution document describes GPLv2-licensed OVDP as a reference for corrections. Please review upstream licence compatibility before republishing beyond the intended personal non-commercial use. Hosting publicly still amounts to distribution of downloaded dictionary files.
 
-See [architecture and data decisions](docs/ARCHITECTURE.md).
+The UI source code and third-party lexical content have different licence obligations.
