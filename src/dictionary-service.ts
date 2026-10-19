@@ -6,9 +6,10 @@ export interface DictionaryManifest {
   count: number
   index: string
   chunks: string[]
+  chunkStrategy?: 'prefix2' | 'first-letter'
 }
 
-const offlineCacheName = 'lexi-dictionary-v1'
+const offlineCacheName = 'lexi-dictionary-v2'
 let manifestPromise: Promise<DictionaryManifest | null> | null = null
 let wordsPromise: Promise<string[]> | null = null
 const shards = new Map<string, Promise<Record<string, DictionaryEntry>>>()
@@ -77,16 +78,20 @@ export async function lookupWord(word: string): Promise<DictionaryEntry | null> 
   if (!key) return null
   const manifest = await getManifest()
   if (!manifest) return byHeadword.get(key) ?? null
-  const letter = /^[a-z]/.test(key) ? key[0] : 'other'
-  const url = '/dictionary/data/' + manifest.version + '/' + letter + '.json'
+  const first = /^[a-z]/.test(key) ? key[0] : 'other'
+  const chunk = manifest.chunkStrategy === 'prefix2'
+    ? (first === 'other' ? first : /^[a-z]/.test(key[1] || '') ? key.slice(0, 2) : first + '_')
+    : first
+  const url = '/dictionary/data/' + manifest.version + '/' + chunk + '.json'
   if (!manifest.chunks.includes(url)) return null
-  if (!shards.has(letter)) {
-    shards.set(letter, requestJson<Record<string, DictionaryEntry>>(url).catch((error) => {
-      shards.delete(letter)
+  const cacheKey = manifest.version + ':' + chunk
+  if (!shards.has(cacheKey)) {
+    shards.set(cacheKey, requestJson<Record<string, DictionaryEntry>>(url).catch((error) => {
+      shards.delete(cacheKey)
       throw error
     }))
   }
-  return (await shards.get(letter)!)[key] ?? null
+  return (await shards.get(cacheKey)!)[key] ?? null
 }
 
 export async function offlineProgress(): Promise<{ saved: number; total: number }> {

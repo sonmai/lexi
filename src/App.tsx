@@ -7,6 +7,11 @@ import {
 } from './dictionary-service'
 import type { DictionaryEntry, Sense } from './data/types'
 
+const sourceLabels: Record<string, string> = {
+  skypedia: 'Skypedia', viwiktionary: 'Wiktionary Việt',
+  enwiktionary: 'Wiktionary', wordnet: 'WordNet',
+}
+
 function initialWord(): string {
   const fromUrl = new URLSearchParams(window.location.search).get('q')?.trim()
   return fromUrl || 'example'
@@ -25,6 +30,11 @@ function DefinitionList({ senses, language }: { senses: Sense[]; language: 'vi' 
           <div className="sense-copy">
             <span className="part-of-speech">{sense.partOfSpeech}</span>
             <p className="sense-definition">{sense.definition}</p>
+            {sense.tags && sense.tags.length > 0 && (
+              <div className="usage-labels">{sense.tags.map((tag) => (
+                <span key={tag} className="usage-label">{tag}</span>
+              ))}</div>
+            )}
             {sense.example && (
               <div className="sense-example">
                 <p>{sense.example}</p>
@@ -33,6 +43,7 @@ function DefinitionList({ senses, language }: { senses: Sense[]; language: 'vi' 
                 )}
               </div>
             )}
+            {sense.source && <p className="sense-source">{sourceLabels[sense.source] || sense.source}</p>}
           </div>
         </li>
       ))}
@@ -52,7 +63,12 @@ function DictionaryResult({
       <div className="entry-heading">
         <div>
           <h2>{entry.headword}</h2>
-          {entry.ipa && <p className="ipa">{entry.ipa}</p>}
+          {(entry.ipaUk || entry.ipaUs) ? (
+            <div className="pronunciation-variants">
+              {entry.ipaUk && <p className="ipa"><span className="ipa-region">UK</span>{entry.ipaUk}</p>}
+              {entry.ipaUs && <p className="ipa"><span className="ipa-region">US</span>{entry.ipaUs}</p>}
+            </div>
+          ) : entry.ipa ? <p className="ipa">{entry.ipa}</p> : null}
         </div>
         <button
           type="button"

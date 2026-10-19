@@ -264,3 +264,10 @@ a { color: inherit; text-decoration: none; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+.pronunciation-variants { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: baseline; margin: 11px 0 0; }
+.pronunciation-variants .ipa { margin: 0; }
+.ipa-region { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-right: 5px; }
+.usage-labels { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.usage-label { font-size: 11px; color: var(--text-secondary); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; }
+.sense-source { margin: 7px 0 0; font-size: 11px; color: var(--text-muted); }
