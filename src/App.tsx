@@ -7,6 +7,11 @@ import {
 } from './dictionary-service'
 import type { DictionaryEntry, Sense } from './data/types'
 
+const sourceLabels: Record<string, string> = {
+  skypedia: 'Skypedia', viwiktionary: 'Wiktionary Việt',
+  enwiktionary: 'Wiktionary', wordnet: 'WordNet',
+}
+
 function initialWord(): string {
   const fromUrl = new URLSearchParams(window.location.search).get('q')?.trim()
   return fromUrl || 'example'
@@ -38,10 +43,7 @@ function DefinitionList({ senses, language }: { senses: Sense[]; language: 'vi' 
                 )}
               </div>
             )}
-            {sense.source && <p className="sense-source">{{
-              skypedia: 'Skypedia', viwiktionary: 'Wiktionary Việt',
-              enwiktionary: 'Wiktionary', wordnet: 'WordNet'
-            }[sense.source] || sense.source}</p>}
+            {sense.source && <p className="sense-source">{sourceLabels[sense.source] || sense.source}</p>}
           </div>
         </li>
       ))}
