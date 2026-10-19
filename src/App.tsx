@@ -77,7 +77,7 @@ function PronunciationItem({
 }) {
   const localeLabel = label || 'English'
   return (
-    <div className={label ? 'pronunciation-item' : 'pronunciation-item pronunciation-item-single'}>
+    <div className={`pronunciation-item${!label ? ' pronunciation-item-single' : ''}${!ipa ? ' pronunciation-item-no-ipa' : ''}`}>
       {label && <span className="pronunciation-accent">{label}</span>}
       {ipa && <span className="pronunciation-ipa">{ipa}</span>}
       <button
