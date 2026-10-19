@@ -1,29 +1,34 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
-  ArrowDownToLine, ArrowRight, BookA, BookOpen, Check, ChevronRight, Command,
-  Languages, Search, Volume2, WifiOff, X
+  ArrowDownToLine, BookOpen, Check, Command, Search, Volume2, X,
 } from 'lucide-react'
-import { downloadForOffline, getManifest, loadWords, lookupWord, offlineProgress, suggest } from './dictionary-service'
+import {
+  downloadForOffline, getManifest, loadWords, lookupWord, offlineProgress, suggest,
+} from './dictionary-service'
 import type { DictionaryEntry, Sense } from './data/types'
 
-const featuredWords = ['example', 'clarity', 'context', 'resilience', 'balance']
+function initialWord(): string {
+  const fromUrl = new URLSearchParams(window.location.search).get('q')?.trim()
+  return fromUrl || 'example'
+}
 
-function MeaningList({ senses, language }: { senses: Sense[]; language: 'vi' | 'en' }) {
-  if (!senses.length) {
-    return <p className="missing-definition">No definition available in this language.</p>
+function DefinitionList({ senses, language }: { senses: Sense[]; language: 'vi' | 'en' }) {
+  if (senses.length === 0) {
+    return <p className="empty-language">Chưa có định nghĩa {language === 'vi' ? 'tiếng Việt' : 'tiếng Anh'} cho từ này.</p>
   }
+
   return (
-    <ol className="meaning-list">
+    <ol className="sense-list">
       {senses.map((sense, index) => (
-        <li className="meaning-item" key={index}>
-          <span className="sense-number">{String(index + 1).padStart(2, '0')}</span>
-          <div className="sense-content">
+        <li className="sense-item" key={index}>
+          <span className="sense-index" aria-hidden="true">{index + 1}.</span>
+          <div className="sense-copy">
             <span className="part-of-speech">{sense.partOfSpeech}</span>
-            <p className="definition">{sense.definition}</p>
+            <p className="sense-definition">{sense.definition}</p>
             {sense.example && (
-              <div className="example">
-                <p className="example-english">“{sense.example}”</p>
-                {language === 'vi' && sense.exampleTranslation && (
+              <div className="sense-example">
+                <p>{sense.example}</p>
+                {sense.exampleTranslation && (
                   <p className="example-translation">{sense.exampleTranslation}</p>
                 )}
               </div>
@@ -35,314 +40,319 @@ function MeaningList({ senses, language }: { senses: Sense[]; language: 'vi' | '
   )
 }
 
-function DefinitionCard({ title, subtitle, icon, senses, language }: {
-  title: string
-  subtitle: string
-  icon: React.ReactNode
-  senses: Sense[]
-  language: 'vi' | 'en'
+function DictionaryResult({
+  entry, speak, canSpeak,
+}: {
+  entry: DictionaryEntry
+  speak: () => void
+  canSpeak: boolean
 }) {
   return (
-    <section className="definition-card" aria-label={title}>
-      <div className="card-heading">
-        <div className="card-icon">{icon}</div>
-        <div><h2>{title}</h2><p>{subtitle}</p></div>
-      </div>
-      <MeaningList senses={senses} language={language} />
-    </section>
-  )
-}
-
-function EntryView({ entry, onSpeak }: { entry: DictionaryEntry; onSpeak: () => void }) {
-  return (
-    <div className="entry-view" key={entry.headword}>
-      <div className="word-heading">
-        <div className="word-heading-copy">
-          <p className="eyebrow">DICTIONARY ENTRY</p>
-          <h1>{entry.headword}</h1>
-          <div className="pronunciation">
-            {entry.ipa ? <span className="ipa">{entry.ipa}</span> : <span>Pronunciation unavailable</span>}
-            <span className="pronunciation-dot" aria-hidden="true" />
-            <span>English</span>
-          </div>
+    <article className="dictionary-result">
+      <div className="entry-heading">
+        <div>
+          <h2>{entry.headword}</h2>
+          {entry.ipa && <p className="ipa">{entry.ipa}</p>}
         </div>
-        <button className="sound-button" type="button" aria-label={`Pronounce ${entry.headword}`} onClick={onSpeak}>
-          <Volume2 size={21} strokeWidth={1.9} />
+        <button
+          type="button"
+          className="pronounce-button"
+          onClick={speak}
+          aria-label={'Phát âm ' + entry.headword}
+          title="Phát âm tiếng Anh"
+          disabled={!canSpeak}
+        >
+          <Volume2 size={21} strokeWidth={1.8} />
         </button>
       </div>
-      <div className="definitions-grid">
-        <DefinitionCard
-          title="Anh – Việt"
-          subtitle="Vietnamese meanings"
-          icon={<Languages size={20} />}
-          senses={entry.vi}
-          language="vi"
-        />
-        <DefinitionCard
-          title="English – English"
-          subtitle="English definitions"
-          icon={<BookOpen size={20} />}
-          senses={entry.en}
-          language="en"
-        />
+      <div className="definition-columns">
+        <section className="definition-column" aria-labelledby="vi-heading">
+          <div className="definition-heading">
+            <h3 id="vi-heading">Anh – Việt</h3>
+            <span>Vietnamese</span>
+          </div>
+          <DefinitionList senses={entry.vi} language="vi" />
+        </section>
+        <section className="definition-column" aria-labelledby="en-heading">
+          <div className="definition-heading">
+            <h3 id="en-heading">English – English</h3>
+            <span>Definitions</span>
+          </div>
+          <DefinitionList senses={entry.en} language="en" />
+        </section>
       </div>
-    </div>
+    </article>
   )
 }
 
 export default function App() {
-  const [query, setQuery] = useState('example')
-  const [selected, setSelected] = useState('example')
-  const [isFocused, setIsFocused] = useState(false)
-  const [activeSuggestion, setActiveSuggestion] = useState(0)
-  const [canSpeak, setCanSpeak] = useState(false)
+  const [query, setQuery] = useState(initialWord)
+  const [selectedWord, setSelectedWord] = useState(initialWord)
   const [headwords, setHeadwords] = useState<string[]>([])
   const [entry, setEntry] = useState<DictionaryEntry | null>(null)
-  const [busy, setBusy] = useState(true)
-  const [error, setError] = useState('')
-  const [loadedCount, setLoadedCount] = useState(0)
-  const [offlineState, setOfflineState] = useState({ saved: 0, total: 0 })
+  const [indexError, setIndexError] = useState('')
+  const [lookupError, setLookupError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [indexReady, setIndexReady] = useState(false)
+  const [wordCount, setWordCount] = useState(0)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [canSpeak, setCanSpeak] = useState(false)
+  const [offline, setOffline] = useState({ saved: 0, total: 0 })
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-  const searchRef = useRef<HTMLDivElement>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
+  const searchRoot = useRef<HTMLFormElement>(null)
+  const suggestionId = useId()
 
   const suggestions = useMemo(() => suggest(headwords, query), [headwords, query])
-  const displaySuggestions = isFocused && query.trim().length > 0
+  const suggestionVisible = showSuggestions && query.trim().length > 0
+  const offlineReady = offline.total > 0 && offline.saved === offline.total
 
   useEffect(() => {
-    setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window)
-    let active = true
+    let live = true
+    setCanSpeak('speechSynthesis' in window)
+
+    const keyHandler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        searchInput.current?.focus()
+        searchInput.current?.select()
+      }
+      if (event.key === 'Escape') {
+        setShowSuggestions(false)
+        searchInput.current?.blur()
+      }
+    }
+    const outsideHandler = (event: PointerEvent) => {
+      if (searchRoot.current && !searchRoot.current.contains(event.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    const historyHandler = () => {
+      const word = new URLSearchParams(window.location.search).get('q')?.trim() || 'example'
+      setSelectedWord(word)
+      setQuery(word)
+      setShowSuggestions(false)
+    }
+    document.addEventListener('keydown', keyHandler)
+    document.addEventListener('pointerdown', outsideHandler)
+    window.addEventListener('popstate', historyHandler)
+
     void (async () => {
       try {
         const words = await loadWords()
-        if (!active) return
+        if (!live) return
         setHeadwords(words)
+        setIndexReady(true)
         const manifest = await getManifest()
-        if (active) setLoadedCount(manifest?.count || words.length)
-        if (active) setOfflineState(await offlineProgress())
-      } catch (reason) {
-        if (active) setError(reason instanceof Error ? reason.message : 'Unable to load dictionary index.')
+        if (!live) return
+        setWordCount(manifest?.count ?? words.length)
+        setOffline(await offlineProgress())
+      } catch (error) {
+        if (live) setIndexError(error instanceof Error ? error.message : 'Không thể tải danh sách từ.')
       }
     })()
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault()
-        inputRef.current?.focus()
-        inputRef.current?.select()
-      }
-      if (event.key === 'Escape') {
-        setIsFocused(false)
-        inputRef.current?.blur()
-      }
-    }
-    const onOutside = (event: PointerEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setIsFocused(false)
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    document.addEventListener('pointerdown', onOutside)
+
     return () => {
-      active = false
-      document.removeEventListener('keydown', onKey)
-      document.removeEventListener('pointerdown', onOutside)
+      live = false
+      document.removeEventListener('keydown', keyHandler)
+      document.removeEventListener('pointerdown', outsideHandler)
+      window.removeEventListener('popstate', historyHandler)
     }
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-    setBusy(true)
-    setError('')
-    void lookupWord(selected).then((value) => {
-      if (!cancelled) setEntry(value)
-    }).catch((reason) => {
-      if (!cancelled) {
-        setError(reason instanceof Error ? reason.message : 'Unable to load this word.')
+    let live = true
+    setLookupError('')
+    setLoading(true)
+    void lookupWord(selectedWord).then((result) => {
+      if (live) setEntry(result)
+    }).catch((error) => {
+      if (live) {
         setEntry(null)
+        setLookupError(error instanceof Error ? error.message : 'Không thể tải định nghĩa.')
       }
     }).finally(() => {
-      if (!cancelled) setBusy(false)
+      if (live) setLoading(false)
     })
-    return () => { cancelled = true }
-  }, [selected])
+    return () => { live = false }
+  }, [selectedWord])
 
-  const downloadAll = async () => {
+  function chooseWord(word: string) {
+    const term = word.trim()
+    if (!term) return
+    setSelectedWord(term)
+    setQuery(term)
+    setShowSuggestions(false)
+    setActiveIndex(0)
+    searchInput.current?.blur()
+    const url = new URL(window.location.href)
+    url.searchParams.set('q', term)
+    if (window.location.search !== url.search) window.history.pushState({}, '', url)
+  }
+
+  function speakWord() {
+    if (!entry || !canSpeak) return
+    window.speechSynthesis.cancel()
+    const speech = new SpeechSynthesisUtterance(entry.headword)
+    speech.lang = 'en-GB'
+    speech.rate = 0.9
+    window.speechSynthesis.speak(speech)
+  }
+
+  async function downloadDictionary() {
     setDownloading(true)
     setDownloadError('')
     try {
-      await downloadForOffline((saved, total) => setOfflineState({ saved, total }))
-      setOfflineState(await offlineProgress())
-    } catch (reason) {
-      setDownloadError(reason instanceof Error ? reason.message : 'Offline download failed.')
+      await downloadForOffline((saved, total) => setOffline({ saved, total }))
+      setOffline(await offlineProgress())
+    } catch (error) {
+      setDownloadError(error instanceof Error ? error.message : 'Không thể tải dữ liệu offline.')
     } finally {
       setDownloading(false)
     }
   }
 
-  const offlineReady = offlineState.total > 0 && offlineState.saved === offlineState.total
-
-  const selectWord = (headword: string) => {
-    setSelected(headword)
-    setQuery(headword)
-    setIsFocused(false)
-    setActiveSuggestion(0)
-    inputRef.current?.blur()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const submitSearch = () => {
-    const candidate = suggestions[activeSuggestion] ?? query.trim()
-    if (candidate) selectWord(candidate)
-  }
-
-  const pronounce = () => {
-    if (!entry || !canSpeak) return
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(entry.headword)
-    utterance.lang = 'en-GB'
-    utterance.rate = 0.86
-    window.speechSynthesis.speak(utterance)
-  }
-
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="topbar-inner">
-          <a className="brand" href="/" aria-label="Lexi dictionary home">
-            <span className="brand-symbol"><BookA size={21} strokeWidth={2} /></span>
-            <span>lexi<span className="brand-period">.</span></span>
-          </a>
-          <span className="topbar-description">A little more meaning, every day.</span>
-          <div className="topbar-status"><span className="status-dot" /> Offline-first dictionary</div>
+      <a className="skip-link" href="#dictionary-content">Bỏ qua điều hướng</a>
+      <header className="site-header">
+        <div className="header-inner">
+          <a className="wordmark" href="/" aria-label="Lexi — trang chủ">lexi<span>.</span></a>
+          <span className="header-divider" aria-hidden="true" />
+          <span className="header-label">English dictionary</span>
+          <a className="header-source" href="/sources.html">Nguồn dữ liệu</a>
         </div>
       </header>
 
-      <main className="page">
-        <div className="intro">
-          <div className="intro-tag"><span className="intro-tag-line" /> YOUR EVERYDAY DICTIONARY</div>
-          <h2>Every word has <span>a story.</span></h2>
-          <p>One simple search. Clear meanings in Vietnamese and English, side by side.</p>
+      <main className="main-content" id="dictionary-content">
+        <div className="search-header">
+          <h1>Từ điển tiếng Anh</h1>
+          <p>Tra cứu Anh – Việt và Anh – Anh trong một lần tìm.</p>
         </div>
 
-        <div className="search-area" ref={searchRef}>
-          <div className={`search-bar ${isFocused ? 'search-bar-active' : ''}`}>
-            <Search size={21} aria-hidden="true" className="search-icon" />
+        <form
+          className="search-root"
+          role="search"
+          ref={searchRoot}
+          onSubmit={(event) => {
+            event.preventDefault()
+            chooseWord(suggestions[activeIndex] ?? query)
+          }}
+        >
+          <label className="sr-only" htmlFor="lookup-word">Nhập từ tiếng Anh</label>
+          <div className={'search-field ' + (showSuggestions ? 'search-field-active' : '')}>
+            <Search size={21} strokeWidth={1.9} aria-hidden="true" />
             <input
-              ref={inputRef}
+              ref={searchInput}
+              id="lookup-word"
+              role="combobox"
               type="search"
               inputMode="search"
               autoComplete="off"
               spellCheck={false}
-              aria-label="Look up an English word"
-              aria-expanded={displaySuggestions}
-              aria-controls="word-suggestions"
-              aria-autocomplete="list"
-              placeholder="Search an English word..."
               value={query}
-              onFocus={() => setIsFocused(true)}
-              onChange={(event) => { setQuery(event.target.value); setActiveSuggestion(0); setIsFocused(true) }}
+              placeholder="Nhập từ tiếng Anh để tra cứu..."
+              aria-autocomplete="list"
+              aria-expanded={suggestionVisible}
+              aria-controls={suggestionVisible ? suggestionId : undefined}
+              aria-activedescendant={suggestionVisible && suggestions.length ? suggestionId + '-' + activeIndex : undefined}
+              onFocus={() => setShowSuggestions(true)}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                setActiveIndex(0)
+                setShowSuggestions(true)
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'ArrowDown' && suggestions.length) {
                   event.preventDefault()
-                  setActiveSuggestion((index) => (index + 1) % suggestions.length)
+                  setActiveIndex((previous) => (previous + 1) % suggestions.length)
                 } else if (event.key === 'ArrowUp' && suggestions.length) {
                   event.preventDefault()
-                  setActiveSuggestion((index) => (index + suggestions.length - 1) % suggestions.length)
-                } else if (event.key === 'Enter') {
-                  event.preventDefault()
-                  submitSearch()
+                  setActiveIndex((previous) => (previous + suggestions.length - 1) % suggestions.length)
                 }
               }}
             />
             {query && (
-              <button className="clear-button" aria-label="Clear search" onClick={() => {
-                setQuery('')
-                setActiveSuggestion(0)
-                inputRef.current?.focus()
-              }} type="button"><X size={17} /></button>
+              <button
+                className="clear-search"
+                type="button"
+                aria-label="Xóa từ đã nhập"
+                onClick={() => { setQuery(''); setActiveIndex(0); searchInput.current?.focus() }}
+              >
+                <X size={18} strokeWidth={1.9} />
+              </button>
             )}
-            <div className="search-shortcut" aria-hidden="true"><Command size={13}/><span>K</span></div>
+            <span className="keyboard-hint" aria-hidden="true"><Command size={13} /> K</span>
           </div>
-          {displaySuggestions && (
-            <div className="suggestion-popover" id="word-suggestions" role="listbox" aria-label="Suggested words">
-              {suggestions.length > 0 ? suggestions.map((result, index) => (
+          {suggestionVisible && (
+            <div className="suggestions" id={suggestionId} role="listbox" aria-label="Từ gợi ý">
+              {suggestions.length ? suggestions.map((word, index) => (
                 <button
-                  key={result}
-                  className={`suggestion ${activeSuggestion === index ? 'suggestion-active' : ''}`}
+                  key={word}
+                  id={suggestionId + '-' + index}
                   type="button"
                   role="option"
-                  aria-selected={activeSuggestion === index}
+                  aria-selected={index === activeIndex}
+                  className={'suggestion ' + (index === activeIndex ? 'suggestion-active' : '')}
                   onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => selectWord(result)}
+                  onClick={() => chooseWord(word)}
                 >
-                  <BookOpen size={16}/><span>{result}</span><ArrowRight size={16}/>
+                  <span>{word}</span>
+                  <span className="suggestion-arrow" aria-hidden="true">↗</span>
                 </button>
               )) : (
-                <div className="suggestion-empty">No matching word.</div>
+                <p className="suggestion-message">
+                  {indexReady ? 'Không tìm thấy từ bắt đầu bằng cụm này.' : 'Đang tải danh sách từ...'}
+                </p>
               )}
             </div>
           )}
-        </div>
+        </form>
 
-        <div className="data-toolbar">
-          <div className="dictionary-size"><BookOpen size={15}/>{loadedCount ? loadedCount.toLocaleString('en') + ' headwords' : 'Loading dictionary...'}</div>
-          <button type="button" className="offline-button" disabled={downloading || offlineReady || !offlineState.total}
-            onClick={() => void downloadAll()}>
-            {offlineReady ? <Check size={15}/> : <ArrowDownToLine size={15}/>}
-            {offlineReady ? 'Available offline' : downloading ? 'Downloading ' + offlineState.saved + '/' + offlineState.total : 'Download for offline use'}
+        <div className="utility-row">
+          <span className="word-count">
+            {indexError ? 'Không thể tải danh sách từ' : wordCount ? wordCount.toLocaleString('en') + ' mục từ' : 'Đang tải dữ liệu...'}
+          </span>
+          <button
+            className="offline-action"
+            type="button"
+            onClick={() => void downloadDictionary()}
+            disabled={downloading || offlineReady || !offline.total}
+            aria-label={offlineReady ? 'Từ điển đã có sẵn offline' : 'Tải từ điển để sử dụng offline'}
+          >
+            {offlineReady ? <Check size={17} /> : <ArrowDownToLine size={17} />}
+            <span>{offlineReady ? 'Đã tải offline' : downloading ? offline.saved + '/' + offline.total + ' phần' : 'Tải từ điển offline'}</span>
           </button>
         </div>
-        {downloadError && <p role="alert" className="data-error">{downloadError}</p>}
+        {(indexError || downloadError) && (
+          <p className="inline-error" role="alert">{indexError || downloadError}</p>
+        )}
 
-        <div className="workspace">
-          <aside className="sidebar" aria-label="Dictionary shortcuts">
-            <div className="sidebar-section">
-              <div className="sidebar-title">EXPLORE</div>
-              <div className="sidebar-item sidebar-item-selected"><BookOpen size={18} /><span>Dictionary</span><ChevronRight size={16}/></div>
+        <div className="result-region" aria-live="polite" aria-busy={loading}>
+          {loading ? (
+            <div className="result-message"><h2>Đang tra từ...</h2></div>
+          ) : lookupError ? (
+            <div className="result-message" role="alert">
+              <h2>Không thể tải định nghĩa</h2>
+              <p>{lookupError}</p>
             </div>
-            <div className="sidebar-section sidebar-words">
-              <div className="sidebar-title">WORDS TO EXPLORE</div>
-              {featuredWords.map((word) => (
-                <button className={`featured-word ${selected === word ? 'featured-active' : ''}`}
-                  key={word} type="button" onClick={() => selectWord(word)}>
-                  <span>{word}</span><ArrowRight size={15}/>
-                </button>
-              ))}
+          ) : entry ? (
+            <DictionaryResult entry={entry} speak={speakWord} canSpeak={canSpeak} />
+          ) : (
+            <div className="result-message">
+              <BookOpen size={25} strokeWidth={1.6} aria-hidden="true" />
+              <h2>Không tìm thấy từ</h2>
+              <p>Hãy kiểm tra chính tả hoặc chọn một từ trong danh sách gợi ý.</p>
             </div>
-            <div className="sidebar-bottom">
-              <div className="sidebar-bottom-icon"><WifiOff size={18}/></div>
-              <strong>Made for offline moments.</strong>
-              <p>Download the complete dictionary to look up words without internet.</p>
-            </div>
-          </aside>
-
-          <section className="result-panel" aria-live="polite">
-            {busy ? (
-              <div className="not-found"><h1>Looking up word...</h1></div>
-            ) : error ? (
-              <div className="not-found"><h1>Dictionary unavailable</h1><p role="alert">{error}</p></div>
-            ) : entry ? (
-              <EntryView entry={entry} onSpeak={pronounce} />
-            ) : (
-              <div className="not-found">
-                <div className="not-found-icon"><Search size={26}/></div>
-                <h1>No entry found</h1>
-                <p>“{selected}” isn't in the current dictionary. Check the spelling or try a suggested word.</p>
-                <button type="button" onClick={() => selectWord('example')}>Explore “example” <ArrowRight size={16}/></button>
-              </div>
-            )}
-            <div className="panel-footer">
-              <div><Check size={15}/><span>English + Vietnamese in one place</span></div>
-              <span>{offlineState.total ? 'Open dictionary data' : 'Prototype data'}</span>
-            </div>
-          </section>
+          )}
         </div>
       </main>
 
-      <footer className="footer">
-        <span>lexi<span className="brand-period">.</span></span>
-        <a href="/sources.html" target="_blank" rel="noreferrer">Data sources &amp; licences</a>
+      <footer className="site-footer">
+        <span>Lexi Dictionary</span>
+        <a href="/sources.html">Nguồn &amp; giấy phép dữ liệu</a>
       </footer>
     </div>
   )
