@@ -247,6 +247,7 @@ export default function App() {
             <input
               ref={searchInput}
               id="lookup-word"
+              role="combobox"
               type="search"
               inputMode="search"
               autoComplete="off"
