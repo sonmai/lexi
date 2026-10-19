@@ -22,7 +22,20 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,json}']
+        globPatterns: ['**/*.{js,css,html,svg,json}'],
+        globIgnores: ['**/dictionary/**'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname === '/dictionary/manifest.json',
+            handler: 'NetworkFirst',
+            options: { cacheName: 'lexi-manifest-v1', networkTimeoutSeconds: 5 }
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/dictionary/data/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'lexi-dictionary-v1' }
+          }
+        ]
       }
     })
   ]

@@ -5,3 +5,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Generated from third-party source data at build time
+public/dictionary/
