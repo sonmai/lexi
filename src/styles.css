@@ -227,6 +227,9 @@ a { color: inherit; text-decoration: none; }
 .pronunciation-item-single {
   grid-template-columns: minmax(0, 1fr) 44px;
 }
+.pronunciation-item-no-ipa {
+  grid-template-columns: 44px;
+}
 .pronunciation-ipa {
   min-width: 0;
   font-size: 16px;
