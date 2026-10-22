@@ -15,7 +15,7 @@ const sourceLabels: Record<string, string> = {
 
 function initialWord(): string {
   const fromUrl = new URLSearchParams(window.location.search).get('q')?.trim()
-  return fromUrl || 'example'
+  return fromUrl || ''
 }
 
 function DefinitionList({ senses, language }: { senses: Sense[]; language: 'vi' | 'en' }) {
@@ -151,7 +151,7 @@ export default function App() {
   const [entry, setEntry] = useState<DictionaryEntry | null>(null)
   const [indexError, setIndexError] = useState('')
   const [lookupError, setLookupError] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => Boolean(initialWord()))
   const [indexReady, setIndexReady] = useState(false)
   const [wordCount, setWordCount] = useState(0)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -195,7 +195,7 @@ export default function App() {
       }
     }
     const historyHandler = () => {
-      const word = new URLSearchParams(window.location.search).get('q')?.trim() || 'example'
+      const word = initialWord()
       setSelectedWord(word)
       setQuery(word)
       setShowSuggestions(false)
@@ -230,6 +230,11 @@ export default function App() {
   useEffect(() => {
     let live = true
     setLookupError('')
+    if (!selectedWord) {
+      setEntry(null)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     void lookupWord(selectedWord).then((result) => {
       if (live) setEntry(result)
@@ -397,8 +402,8 @@ export default function App() {
           <p className="inline-error" role="alert">{indexError || downloadError}</p>
         )}
 
-        <div className="result-region" aria-live="polite" aria-busy={loading}>
-          {loading ? (
+        <div className="result-region" aria-live="polite" aria-busy={Boolean(selectedWord) && loading}>
+          {!selectedWord ? null : loading ? (
             <div className="result-message"><h2>Đang tra từ...</h2></div>
           ) : lookupError ? (
             <div className="result-message" role="alert">
@@ -415,7 +420,7 @@ export default function App() {
             </div>
           )}
         </div>
-        {!loading && entry && nearbyWords.length > 0 && (
+        {selectedWord && !loading && entry && nearbyWords.length > 0 && (
           <nav className="related-lookup" aria-label="Các từ có cùng tiền tố">
             <h3>Các từ bắt đầu bằng “{entry.headword}”</h3>
             <div className="related-words">
@@ -437,3 +442,4 @@ export default function App() {
     </div>
   )
 }
+
