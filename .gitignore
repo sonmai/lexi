@@ -1,4 +1,6 @@
 node_modules/
+test-results/
+playwright-report/
 dist/
 .vite/
 .DS_Store
@@ -8,3 +10,4 @@ dist/
 
 # Generated from third-party source data at build time
 public/dictionary/
+
