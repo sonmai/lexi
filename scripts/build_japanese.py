@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Build Lexi's Japanese–Vietnamese dictionary from open, attributed sources.
 
-JMdict (CC BY-SA 4.0) supplies the entry structure, readings, parts of speech
-and English glosses. Bunchaway (CC BY-SA 4.0) supplies Vietnamese meanings,
-keyed by written form. KANJIDIC2 (CC BY-SA 4.0) supplies Sino-Vietnamese
+JMdict (CC BY-SA 4.0) supplies the entry structure, readings and parts of
+speech. Bunchaway (CC BY-SA 4.0) supplies Vietnamese meanings, keyed by written
+form; entries without a Vietnamese meaning are left out. KANJIDIC2 (CC BY-SA 4.0) supplies Sino-Vietnamese
 (Hán Việt) readings, and Tatoeba (CC BY 2.0 FR) supplies Japanese sentences
 with human Vietnamese translations, linked to words through its jpn_indices.
 
@@ -147,25 +147,17 @@ def build_entries(jmdict: dict, bunchaway: dict[str, list[str]]) -> list[dict]:
             "forms": kanji,
             "readings": kana or [k["text"] for k in word["kana"]],
             "vi": bunchaway[vi_form] if vi_form else [],
-            "en": [],
+            "pos": list(dict.fromkeys(pos for sense in word["sense"] for pos in sense["partOfSpeech"])),
         }
         if any(k["common"] for k in word["kanji"] + word["kana"]):
             entry["common"] = True
-        for sense in word["sense"]:
-            glosses = [g["text"] for g in sense["gloss"] if g["lang"] == "eng"]
-            if not glosses:
-                continue
-            item = {"pos": sense["partOfSpeech"], "gloss": "; ".join(glosses)}
-            if sense["misc"]:
-                item["tags"] = sense["misc"][:4]
-            entry["en"].append(item)
         entries.append((entry, all_forms))
 
     extra = 0
     for head, meanings in bunchaway.items():
         if head in covered_forms:
             continue
-        entry = {"id": f"b{extra}", "forms": [head] if has_kanji(head) else [], "readings": [] if has_kanji(head) else [head], "vi": meanings, "en": []}
+        entry = {"id": f"b{extra}", "forms": [head] if has_kanji(head) else [], "readings": [] if has_kanji(head) else [head], "vi": meanings, "pos": []}
         entries.append((entry, [head]))
         extra += 1
     print(f"Japanese entries: {len(entries):,} ({extra:,} Bunchaway-only)", flush=True)
@@ -236,7 +228,7 @@ def build_pages(entries: list[tuple[dict, list[str]]]) -> tuple[dict[str, list[d
     # Suggestions show the written form; search-only spellings are used only as a fallback.
     display: dict[str, tuple[bool, str]] = {}
     for entry, forms in entries:
-        if not entry["vi"] and not entry["en"]:
+        if not entry["vi"]:
             continue
         visible = set(entry["forms"] + entry["readings"])
         for form in dict.fromkeys(forms):
@@ -251,7 +243,7 @@ def build_pages(entries: list[tuple[dict, list[str]]]) -> tuple[dict[str, list[d
 
     def rank(key: str, entry: dict) -> tuple:
         primary = (entry["forms"] or entry["readings"] or [""])[0]
-        return (not entry.get("common"), normalize(primary) != key, not entry["vi"])
+        return (not entry.get("common"), normalize(primary) != key)
 
     for key, items in pages.items():
         items.sort(key=lambda entry: rank(key, entry))
@@ -260,12 +252,12 @@ def build_pages(entries: list[tuple[dict, list[str]]]) -> tuple[dict[str, list[d
 
 
 def write_japanese(files: dict[str, Path], hashes: list[str]) -> dict:
-    version = hashlib.sha256(("".join(hashes) + ":lexi-ja-v1").encode()).hexdigest()[:12]
+    version = hashlib.sha256(("".join(hashes) + ":lexi-ja-v2").encode()).hexdigest()[:12]
     bunchaway = load_bunchaway(files["bunchaway"])
     jmdict = read_tgz_json(files["jmdict"])
     entries = build_entries(jmdict, bunchaway)
     del jmdict, bunchaway
-    examples = attach_examples(entries, files)
+    attach_examples(entries, files)
     pages, display = build_pages(entries)
     hanviet = load_hanviet(files["kanjidic"])
     used = {ch for entry, _ in entries for form in entry["forms"] for ch in form}
@@ -287,9 +279,10 @@ def write_japanese(files: dict[str, Path], hashes: list[str]) -> dict:
         chunks.append(f"{base}/{part}.json")
     save_json(TARGET / "data" / folder / "index.json", sorted((display[key] for key in pages), key=js_order))
     save_json(TARGET / "data" / folder / "kanji.json", hanviet)
-    entry_count = len({entry["id"] for items in pages.values() for entry in items})
-    with_vi = len({entry["id"] for items in pages.values() for entry in items if entry["vi"]})
-    print(f"Produced {entry_count:,} Japanese entries ({with_vi:,} with Vietnamese), {len(pages):,} lookup keys, {len(chunks)} shards, {examples:,} examples. Version {version}", flush=True)
+    published = {entry["id"]: entry for items in pages.values() for entry in items}
+    entry_count = len(published)
+    examples = sum(len(entry.get("examples", [])) for entry in published.values())
+    print(f"Produced {entry_count:,} Japanese entries, {len(pages):,} lookup keys, {len(chunks)} shards, {examples:,} examples. Version {version}", flush=True)
     return {
         "version": version, "count": entry_count, "keys": len(pages),
         "index": f"{base}/index.json", "kanji": f"{base}/kanji.json",

@@ -10,7 +10,7 @@ import {
 import type { DictionaryEntry, JapaneseEntry, Sense } from './data/types'
 import { groupSensesByPartOfSpeech } from './utils/partOfSpeech'
 import {
-  containsJapanese, isKanji, japanesePartOfSpeech, japaneseTagLabel, normalizeJapanese,
+  containsJapanese, isKanji, japanesePartOfSpeech, normalizeJapanese,
 } from './utils/japanese'
 
 const sourceLabels: Record<string, string> = {
@@ -188,6 +188,7 @@ function JapaneseEntryView({
   const reading = entry.forms.length ? entry.readings.join('、') : entry.readings.slice(1).join('、')
   const sinoVietnamese = hanViet(headword, kanji)
   const otherForms = entry.forms.slice(1)
+  const partsOfSpeech = [...new Set(entry.pos.map(japanesePartOfSpeech))]
   return (
     <section className="japanese-entry" aria-label={headword}>
       <div className="entry-heading">
@@ -204,8 +205,14 @@ function JapaneseEntryView({
           <Volume2 size={19} strokeWidth={1.9} aria-hidden="true" />
         </button>
       </div>
-      {(sinoVietnamese.text || otherForms.length > 0 || entry.common) && (
+      {(sinoVietnamese.text || partsOfSpeech.length > 0 || otherForms.length > 0 || entry.common) && (
         <div className="japanese-details">
+          {partsOfSpeech.length > 0 && (
+            <p>
+              <span className="detail-label">Từ loại</span>
+              <span>{partsOfSpeech.join(' · ')}</span>
+            </p>
+          )}
           {sinoVietnamese.text && (
             <p>
               <span className="detail-label">Hán Việt</span>
@@ -221,56 +228,20 @@ function JapaneseEntryView({
           {entry.common && <span className="usage-label">Thông dụng</span>}
         </div>
       )}
-      <div className="definition-columns">
-        <section className="definition-column" aria-label="Nhật – Việt">
-          <div className="definition-heading">
-            <h3>Nhật – Việt</h3>
-            <span>Bunchaway</span>
-          </div>
-          {entry.vi.length ? (
-            <ol className="sense-list">
-              {entry.vi.map((meaning, index) => (
-                <li className="sense-item" key={index}>
-                  <span className="sense-index" aria-hidden="true">{index + 1}.</span>
-                  <p className="sense-definition">{meaning}</p>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="empty-language">Chưa có nghĩa tiếng Việt cho mục này.</p>
-          )}
-        </section>
-        <section className="definition-column" aria-label="Nhật – Anh">
-          <div className="definition-heading">
-            <h3>Nhật – Anh</h3>
-            <span>JMdict</span>
-          </div>
-          {entry.en.length ? (
-            <ol className="sense-list">
-              {entry.en.map((sense, index) => {
-                const parts = [...new Set(sense.pos.map(japanesePartOfSpeech))]
-                const tags = (sense.tags ?? []).map(japaneseTagLabel).filter((tag): tag is string => Boolean(tag))
-                return (
-                  <li className="sense-item" key={index}>
-                    <span className="sense-index" aria-hidden="true">{index + 1}.</span>
-                    <div className="sense-copy">
-                      {parts.length > 0 && <span className="japanese-pos">{parts.join(' · ')}</span>}
-                      <p className="sense-definition">{sense.gloss}</p>
-                      {tags.length > 0 && (
-                        <div className="usage-labels">{tags.map((tag) => (
-                          <span key={tag} className="usage-label">{tag}</span>
-                        ))}</div>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
-          ) : (
-            <p className="empty-language">Chưa có nghĩa tiếng Anh cho mục này.</p>
-          )}
-        </section>
-      </div>
+      <section className="japanese-meanings" aria-label="Nhật – Việt">
+        <div className="definition-heading">
+          <h3>Nhật – Việt</h3>
+          <span>Bunchaway</span>
+        </div>
+        <ol className="sense-list">
+          {entry.vi.map((meaning, index) => (
+            <li className="sense-item" key={index}>
+              <span className="sense-index" aria-hidden="true">{index + 1}.</span>
+              <p className="sense-definition">{meaning}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
       {entry.examples && entry.examples.length > 0 && (
         <section className="japanese-examples" aria-label="Câu ví dụ">
           <h3>Ví dụ <span>Tatoeba</span></h3>

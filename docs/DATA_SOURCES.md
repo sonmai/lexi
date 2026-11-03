@@ -29,14 +29,14 @@ The generated dataset is an adaptation derived in part from CC BY-SA material an
 
 Built by `scripts/build_japanese.py`, which `build_dictionary.py` calls after the English data. Run it directly (`python3 scripts/build_japanese.py`, then `python3 scripts/test_japanese.py`) to rebuild only the Japanese section; every source URL can be overridden with a `LEXI_JMDICT_SOURCE`-style variable, including `file://` paths.
 
-1. **JMdict** via [jmdict-simplified](https://github.com/scriptin/jmdict-simplified) — [EDRDG](https://www.edrdg.org/jmdict/j_jmdict.html), CC BY-SA 4.0. Entry structure, kanji/kana forms, parts of speech, usage labels and English glosses. The release is pinned with `LEXI_JMDICT_RELEASE`.
+1. **JMdict** via [jmdict-simplified](https://github.com/scriptin/jmdict-simplified) — [EDRDG](https://www.edrdg.org/jmdict/j_jmdict.html), CC BY-SA 4.0. Entry structure, kanji/kana forms and parts of speech; its English glosses are not shipped. The release is pinned with `LEXI_JMDICT_RELEASE`.
 2. **Bunchaway Japanese–Vietnamese Dictionary** — https://github.com/bunchaway/tu-dien-nhat-viet , CC BY-SA 4.0 as stated in its README (the repository has no licence file). About 360k headwords keyed by written form, with numbered Vietnamese meanings and no readings. It covers almost all of JMdict and its uniform style suggests it was produced with machine assistance from JMdict; it has not been independently verified.
 3. **KANJIDIC2** — [EDRDG](https://www.edrdg.org/kanjidic/kanjidic2.html), CC BY-SA 4.0. Vietnamese readings supplied by Minh Chau Pham. They are not ordered by frequency (本: Bổn, Bản) and mix Hán Việt with Nôm readings (強: Cường, …, Gắng), so the UI joins readings into a word (学生 → HỌC SINH would need 生 to have one reading) only when every character has a single reading, and otherwise lists up to three readings per character.
 4. **Tatoeba** — https://tatoeba.org/ , CC BY 2.0 FR. Japanese sentences with human Vietnamese translations, linked to JMdict words through `jpn_indices` (the Tanaka Corpus word index), so conjugated forms such as 食べた still attach to 食べる.
 
 ### How meanings are aligned
 
-Bunchaway has no readings, so a written form shared by homographs (生 なま/せい/き) would otherwise lend one meaning to every entry. Each form gives its Vietnamese meaning to a single owner entry: common entries first, then entries where the form is the primary spelling. Entries with kanji only use kanji spellings, because Bunchaway's kana headwords are too ambiguous (げ is the kana itself, not 気). Entries without an owned meaning show only the JMdict English senses. With JMdict 3.6.2 this leaves 175 of 22,650 common entries (mostly secondary readings such as 空 そら) without Vietnamese.
+Bunchaway has no readings, so a written form shared by homographs (生 なま/せい/き) would otherwise lend one meaning to every entry. Each form gives its Vietnamese meaning to a single owner entry: common entries first, then entries where the form is the primary spelling. Entries with kanji only use kanji spellings, because Bunchaway's kana headwords are too ambiguous (げ is the kana itself, not 気). Entries without an owned meaning are left out of the published dictionary. With JMdict 3.6.2 this drops about 4,100 entries, 175 of them among the 22,650 common entries (mostly secondary readings such as 空 そら or 生 せい).
 
 ### Japanese data layout
 

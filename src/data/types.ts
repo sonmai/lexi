@@ -19,19 +19,12 @@ export interface DictionaryEntry {
   vi: Sense[]
 }
 
-/** A JMdict sense: JMdict part-of-speech and misc codes, English glosses joined by "; ". */
-export interface JapaneseSense {
-  pos: string[]
-  gloss: string
-  tags?: string[]
-}
-
 export interface JapaneseExample {
   ja: string
   vi: string
 }
 
-/** Vietnamese meanings come from Bunchaway, English senses from JMdict, examples from Tatoeba. */
+/** Vietnamese meanings come from Bunchaway, forms and parts of speech from JMdict, examples from Tatoeba. */
 export interface JapaneseEntry {
   id: string
   /** Written (kanji) forms, most common first; empty for kana-only words. */
@@ -39,6 +32,7 @@ export interface JapaneseEntry {
   readings: string[]
   common?: boolean
   vi: string[]
-  en: JapaneseSense[]
+  /** JMdict part-of-speech codes across all senses, in order. */
+  pos: string[]
   examples?: JapaneseExample[]
 }

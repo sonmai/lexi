@@ -4,13 +4,12 @@ import { japaneseShard, normalizeJapanese } from '../../src/utils/japanese'
 const shardCount = 4
 const pages: Record<string, unknown[]> = {
   食べる: [{
-    id: '1358280', forms: ['食べる'], readings: ['たべる'], common: true, vi: ['Ăn'],
-    en: [{ pos: ['v1', 'vt'], gloss: 'to eat' }],
+    id: '1358280', forms: ['食べる'], readings: ['たべる'], common: true, vi: ['Ăn'], pos: ['v1', 'vt'],
     examples: [{ ja: '朝食は何を食べたの？', vi: 'Bữa sáng bạn ăn gì?' }],
   }],
   はし: [
-    { id: '1', forms: ['橋'], readings: ['はし'], common: true, vi: ['Cây cầu'], en: [{ pos: ['n'], gloss: 'bridge' }] },
-    { id: '2', forms: ['箸'], readings: ['はし'], common: true, vi: ['Đôi đũa'], en: [{ pos: ['n'], gloss: 'chopsticks' }] },
+    { id: '1', forms: ['橋'], readings: ['はし'], common: true, vi: ['Cây cầu'], pos: ['n'] },
+    { id: '2', forms: ['箸'], readings: ['はし'], common: true, vi: ['Đôi đũa'], pos: ['n'] },
   ],
 }
 pages.たべる = pages.食べる
@@ -60,6 +59,7 @@ test('romaji input finds Japanese words with Vietnamese meanings and Hán Việt
   await expect(page.getByText('Ăn', { exact: true })).toBeVisible()
   await expect(page.getByText('Động từ nhóm 2 · Ngoại động từ')).toBeVisible()
   await expect(page.getByText('Bữa sáng bạn ăn gì?')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nhật – Anh' })).toHaveCount(0)
 })
 
 test('typing kana switches to Japanese and shows every homograph', async ({ page }) => {

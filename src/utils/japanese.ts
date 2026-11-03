@@ -146,15 +146,3 @@ const posLabels: [RegExp, string][] = [
 export function japanesePartOfSpeech(code: string): string {
   return posLabels.find(([pattern]) => pattern.test(code))?.[1] ?? code
 }
-
-const tagLabels: Record<string, string> = {
-  uk: 'thường viết bằng kana', abbr: 'viết tắt', arch: 'cổ', rare: 'hiếm', obs: 'lỗi thời',
-  col: 'khẩu ngữ', sl: 'tiếng lóng', 'net-sl': 'tiếng lóng mạng', hon: 'tôn kính ngữ',
-  hum: 'khiêm nhường ngữ', pol: 'lịch sự', form: 'trang trọng', 'on-mim': 'từ tượng thanh/tượng hình',
-  yoji: 'thành ngữ 4 chữ', id: 'thành ngữ', proverb: 'tục ngữ', derog: 'miệt thị', vulg: 'thô tục',
-  joc: 'đùa', dated: 'cũ', hist: 'lịch sử',
-}
-
-export function japaneseTagLabel(tag: string): string | null {
-  return tagLabels[tag] ?? null
-}

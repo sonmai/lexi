@@ -47,9 +47,10 @@ for url in japanese["chunks"]:
 assert pages_seen == len(words), (pages_seen, len(words))
 assert len(entries) == japanese["count"], (len(entries), japanese["count"])
 
-common = [e for e in entries.values() if e.get("common")]
-common_vi = sum(1 for e in common if e["vi"])
-assert common_vi / len(common) >= 0.98, (common_vi, len(common))
+assert all(e["vi"] for e in entries.values()), "Entries without Vietnamese must be left out"
+assert all("en" not in e for e in entries.values()), "English glosses are not shipped"
+common = sum(1 for e in entries.values() if e.get("common"))
+assert common >= 22_000, common
 examples = sum(len(e.get("examples", [])) for e in entries.values())
 assert examples >= 3_000, examples
 
@@ -62,10 +63,10 @@ def page(word: str) -> list[dict]:
 for word, meaning in [("食べる", "Ăn"), ("先生", "Giáo viên"), ("たべる", "Ăn"), ("コンピューター", "Máy")]:
     first = page(word)[0]
     assert any(meaning in m for m in first["vi"]), (word, first["vi"])
-    assert first["en"], word
+    assert first["pos"], word
 assert {"橋", "箸"} <= {e["forms"][0] for e in page("はし") if e["forms"]}
-# Homographs must not borrow another reading's Vietnamese meaning.
-assert not next(e for e in page("気") if e["readings"] == ["げ"])["vi"]
+# Homographs must not borrow another reading's Vietnamese meaning: 気 げ has none, so it is left out.
+assert not any(e["readings"] == ["げ"] for e in page("気"))
 
 print("Verified:", japanese["count"], "Japanese entries;", len(words), "lookup keys;",
-      f"{common_vi}/{len(common)} common words with Vietnamese;", examples, "Tatoeba examples")
+      common, "common words;", examples, "Tatoeba examples")
