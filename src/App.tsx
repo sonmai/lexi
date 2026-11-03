@@ -3,20 +3,35 @@ import {
   ArrowDownToLine, BookOpen, Check, Command, Search, Volume2, X,
 } from 'lucide-react'
 import {
-  downloadForOffline, getManifest, loadWords, lookupWord, offlineProgress, suggest,
+  downloadForOffline, getManifest, loadJapaneseWords, loadKanjiReadings, loadWords,
+  lookupJapanese, lookupWord, offlineProgress, suggest, suggestJapanese,
+  type JapaneseLookup,
 } from './dictionary-service'
-import type { DictionaryEntry, Sense } from './data/types'
+import type { DictionaryEntry, JapaneseEntry, Sense } from './data/types'
 import { groupSensesByPartOfSpeech } from './utils/partOfSpeech'
+import {
+  containsJapanese, isKanji, japanesePartOfSpeech, normalizeJapanese,
+} from './utils/japanese'
 
 const sourceLabels: Record<string, string> = {
   skypedia: 'Skypedia', viwiktionary: 'Wiktionary Việt',
   enwiktionary: 'Wiktionary', wordnet: 'WordNet',
 }
 
+type Mode = 'en' | 'ja'
+type LookupResult = { mode: 'en'; entry: DictionaryEntry } | { mode: 'ja'; lookup: JapaneseLookup }
+
 function initialWord(): string {
   const fromUrl = new URLSearchParams(window.location.search).get('q')?.trim()
   return fromUrl || ''
 }
+
+function initialMode(): Mode {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('lang') === 'ja' || containsJapanese(params.get('q') || '') ? 'ja' : 'en'
+}
+
+const COLLAPSED_JAPANESE_ENTRIES = 8
 
 function DefinitionList({ senses, language }: { senses: Sense[]; language: 'vi' | 'en' }) {
   if (senses.length === 0) {
@@ -144,16 +159,148 @@ function DictionaryResult({
   )
 }
 
+/**
+ * KANJIDIC2 "vietnam" readings are not ordered by frequency (本: Bổn, Bản) and mix in
+ * Nôm readings (強: Cường… Gắng), so ambiguous characters list their first few readings.
+ */
+function hanViet(form: string, kanji: Record<string, string[]>): { text: string; full: string } {
+  const characters = [...form].filter((ch) => isKanji(ch) && kanji[ch])
+  const full = characters.map((ch) => ch + ' ' + kanji[ch].join(', ')).join('; ')
+  if (characters.every((ch) => kanji[ch].length === 1)) {
+    return { text: characters.map((ch) => kanji[ch][0]).join(' ').toLocaleUpperCase('vi'), full }
+  }
+  const text = characters.map((ch) => {
+    const readings = kanji[ch]
+    return ch + ' ' + readings.slice(0, 3).join('/') + (readings.length > 3 ? '…' : '')
+  }).join(' · ')
+  return { text, full }
+}
+
+function JapaneseEntryView({
+  entry, kanji, speak, canSpeak,
+}: {
+  entry: JapaneseEntry
+  kanji: Record<string, string[]>
+  speak: (text: string) => void
+  canSpeak: boolean
+}) {
+  const headword = entry.forms[0] ?? entry.readings[0] ?? ''
+  const reading = entry.forms.length ? entry.readings.join('、') : entry.readings.slice(1).join('、')
+  const sinoVietnamese = hanViet(headword, kanji)
+  const otherForms = entry.forms.slice(1)
+  const partsOfSpeech = [...new Set(entry.pos.map(japanesePartOfSpeech))]
+  return (
+    <section className="japanese-entry" aria-label={headword}>
+      <div className="entry-heading">
+        <h2 lang="ja">{headword}</h2>
+        {reading && <span className="japanese-reading" lang="ja">{reading}</span>}
+        <button
+          type="button"
+          className="pronunciation-play"
+          onClick={() => speak(entry.readings[0] ?? headword)}
+          aria-label={`Phát âm ${headword} – tiếng Nhật`}
+          title="Nghe phát âm tiếng Nhật"
+          disabled={!canSpeak}
+        >
+          <Volume2 size={19} strokeWidth={1.9} aria-hidden="true" />
+        </button>
+      </div>
+      {(sinoVietnamese.text || partsOfSpeech.length > 0 || otherForms.length > 0 || entry.common) && (
+        <div className="japanese-details">
+          {partsOfSpeech.length > 0 && (
+            <p>
+              <span className="detail-label">Từ loại</span>
+              <span>{partsOfSpeech.join(' · ')}</span>
+            </p>
+          )}
+          {sinoVietnamese.text && (
+            <p>
+              <span className="detail-label">Hán Việt</span>
+              <span className="han-viet" title={'KANJIDIC2: ' + sinoVietnamese.full}>{sinoVietnamese.text}</span>
+            </p>
+          )}
+          {otherForms.length > 0 && (
+            <p>
+              <span className="detail-label">Cách viết khác</span>
+              <span lang="ja">{otherForms.join('、')}</span>
+            </p>
+          )}
+          {entry.common && <span className="usage-label">Thông dụng</span>}
+        </div>
+      )}
+      <section className="japanese-meanings" aria-label="Nhật – Việt">
+        <div className="definition-heading">
+          <h3>Nhật – Việt</h3>
+          <span>Bunchaway</span>
+        </div>
+        <ol className="sense-list">
+          {entry.vi.map((meaning, index) => (
+            <li className="sense-item" key={index}>
+              <span className="sense-index" aria-hidden="true">{index + 1}.</span>
+              <p className="sense-definition">{meaning}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+      {entry.examples && entry.examples.length > 0 && (
+        <section className="japanese-examples" aria-label="Câu ví dụ">
+          <h3>Ví dụ <span>Tatoeba</span></h3>
+          {entry.examples.map((example) => (
+            <div className="sense-example" key={example.ja}>
+              <p lang="ja">{example.ja}</p>
+              <p className="example-translation">{example.vi}</p>
+            </div>
+          ))}
+        </section>
+      )}
+    </section>
+  )
+}
+
+function JapaneseResult({
+  lookup, kanji, speak, canSpeak,
+}: {
+  lookup: JapaneseLookup
+  kanji: Record<string, string[]>
+  speak: (text: string) => void
+  canSpeak: boolean
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? lookup.entries : lookup.entries.slice(0, COLLAPSED_JAPANESE_ENTRIES)
+  return (
+    <article className="dictionary-result japanese-result">
+      {lookup.entries.length > 1 && (
+        <p className="japanese-summary">
+          {lookup.entries.length} mục cho “<span lang="ja">{lookup.headword}</span>”
+        </p>
+      )}
+      {visible.map((entry) => (
+        <JapaneseEntryView key={entry.id} entry={entry} kanji={kanji} speak={speak} canSpeak={canSpeak} />
+      ))}
+      {!expanded && lookup.entries.length > visible.length && (
+        <button type="button" className="offline-action japanese-more" onClick={() => setExpanded(true)}>
+          Xem thêm {lookup.entries.length - visible.length} mục
+        </button>
+      )}
+    </article>
+  )
+}
+
 export default function App() {
   const [query, setQuery] = useState(initialWord)
   const [selectedWord, setSelectedWord] = useState(initialWord)
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [headwords, setHeadwords] = useState<string[]>([])
-  const [entry, setEntry] = useState<DictionaryEntry | null>(null)
+  const [japaneseWords, setJapaneseWords] = useState<string[]>([])
+  const [kanji, setKanji] = useState<Record<string, string[]>>({})
+  const [result, setResult] = useState<LookupResult | null>(null)
   const [indexError, setIndexError] = useState('')
   const [lookupError, setLookupError] = useState('')
   const [loading, setLoading] = useState(() => Boolean(initialWord()))
   const [indexReady, setIndexReady] = useState(false)
+  const [japaneseState, setJapaneseState] = useState<'idle' | 'loading' | 'ready' | 'missing'>('idle')
   const [wordCount, setWordCount] = useState(0)
+  const [japaneseCount, setJapaneseCount] = useState(0)
   const [activeIndex, setActiveIndex] = useState(0)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [canSpeak, setCanSpeak] = useState(false)
@@ -162,16 +309,26 @@ export default function App() {
   const [downloadError, setDownloadError] = useState('')
   const searchInput = useRef<HTMLInputElement>(null)
   const searchRoot = useRef<HTMLFormElement>(null)
+  const japaneseRequested = useRef(false)
   const suggestionId = useId()
 
-  const suggestions = useMemo(() => suggest(headwords, query), [headwords, query])
-  const nearbyWords = useMemo(
-    () => suggest(headwords, selectedWord, 10)
-      .filter((word) => word.toLowerCase() !== selectedWord.toLowerCase())
-      .slice(0, 8),
-    [headwords, selectedWord],
+  const suggestions = useMemo(
+    () => mode === 'ja' ? suggestJapanese(japaneseWords, query) : suggest(headwords, query),
+    [mode, headwords, japaneseWords, query],
   )
+  const nearbyWords = useMemo(() => {
+    if (mode === 'ja') {
+      const selected = normalizeJapanese(selectedWord)
+      return suggestJapanese(japaneseWords, selectedWord, 10)
+        .filter((word) => normalizeJapanese(word) !== selected)
+        .slice(0, 8)
+    }
+    return suggest(headwords, selectedWord, 10)
+      .filter((word) => word.toLowerCase() !== selectedWord.toLowerCase())
+      .slice(0, 8)
+  }, [mode, headwords, japaneseWords, selectedWord])
   const suggestionVisible = showSuggestions && query.trim().length > 0
+  const suggestionsReady = mode === 'ja' ? japaneseState === 'ready' || japaneseState === 'missing' : indexReady
   const offlineReady = offline.total > 0 && offline.saved === offline.total
 
   useEffect(() => {
@@ -198,6 +355,7 @@ export default function App() {
       const word = initialWord()
       setSelectedWord(word)
       setQuery(word)
+      setMode(initialMode())
       setShowSuggestions(false)
     }
     document.addEventListener('keydown', keyHandler)
@@ -212,7 +370,8 @@ export default function App() {
         setIndexReady(true)
         const manifest = await getManifest()
         if (!live) return
-        setWordCount(manifest?.count ?? words.length)
+        setWordCount(manifest?.index ? manifest.count : words.length)
+        setJapaneseCount(manifest?.japanese?.count ?? 0)
         setOffline(await offlineProgress())
       } catch (error) {
         if (live) setIndexError(error instanceof Error ? error.message : 'Không thể tải danh sách từ.')
@@ -228,26 +387,55 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    if (mode !== 'ja' || japaneseRequested.current) return
+    japaneseRequested.current = true
+    setJapaneseState('loading')
+    void Promise.all([loadJapaneseWords(), loadKanjiReadings()]).then(([words, readings]) => {
+      setJapaneseWords(words)
+      setKanji(readings)
+      setJapaneseState(words.length ? 'ready' : 'missing')
+    }).catch((error) => {
+      japaneseRequested.current = false
+      setJapaneseState('idle')
+      setIndexError(error instanceof Error ? error.message : 'Không thể tải danh sách từ tiếng Nhật.')
+    })
+  }, [mode])
+
+  useEffect(() => {
     let live = true
     setLookupError('')
     if (!selectedWord) {
-      setEntry(null)
+      setResult(null)
       setLoading(false)
       return
     }
     setLoading(true)
-    void lookupWord(selectedWord).then((result) => {
-      if (live) setEntry(result)
+    const lookup: Promise<LookupResult | null> = mode === 'ja'
+      ? lookupJapanese(selectedWord).then((found): LookupResult | null => found && { mode: 'ja', lookup: found })
+      : lookupWord(selectedWord).then((found): LookupResult | null => found && { mode: 'en', entry: found })
+    void lookup.then((found) => {
+      if (live) setResult(found)
     }).catch((error) => {
       if (live) {
-        setEntry(null)
+        setResult(null)
         setLookupError(error instanceof Error ? error.message : 'Không thể tải định nghĩa.')
       }
     }).finally(() => {
       if (live) setLoading(false)
     })
     return () => { live = false }
-  }, [selectedWord])
+  }, [selectedWord, mode])
+
+  function updateUrl(term: string, nextMode: Mode, push: boolean) {
+    const url = new URL(window.location.href)
+    if (term) url.searchParams.set('q', term)
+    else url.searchParams.delete('q')
+    if (nextMode === 'ja') url.searchParams.set('lang', 'ja')
+    else url.searchParams.delete('lang')
+    if (window.location.search === url.search) return
+    if (push) window.history.pushState({}, '', url)
+    else window.history.replaceState({}, '', url)
+  }
 
   function chooseWord(word: string) {
     const term = word.trim()
@@ -257,20 +445,26 @@ export default function App() {
     setShowSuggestions(false)
     setActiveIndex(0)
     searchInput.current?.blur()
-    const url = new URL(window.location.href)
-    url.searchParams.set('q', term)
-    if (window.location.search !== url.search) window.history.pushState({}, '', url)
+    updateUrl(term, mode, true)
   }
 
-  function speakWord(accent: Accent) {
-    if (!entry || !canSpeak) return
+  function switchMode(nextMode: Mode) {
+    if (nextMode === mode) return
+    setMode(nextMode)
+    setActiveIndex(0)
+    updateUrl(selectedWord, nextMode, false)
+    searchInput.current?.focus()
+  }
+
+  function speakText(text: string, lang: string) {
+    if (!canSpeak) return
     window.speechSynthesis.cancel()
-    const speech = new SpeechSynthesisUtterance(entry.headword)
-    speech.lang = accent
+    const speech = new SpeechSynthesisUtterance(text)
+    speech.lang = lang
     speech.rate = 0.9
     // Prefer a matching installed voice. If missing, browser TTS uses its fallback.
     const availableVoice = window.speechSynthesis.getVoices().find(
-      (voice) => voice.lang.toLowerCase() === accent.toLowerCase(),
+      (voice) => voice.lang.toLowerCase() === lang.toLowerCase(),
     )
     if (availableVoice) speech.voice = availableVoice
     window.speechSynthesis.speak(speech)
@@ -304,7 +498,9 @@ export default function App() {
               chooseWord(suggestions[activeIndex] ?? query)
             }}
           >
-            <label className="sr-only" htmlFor="lookup-word">Nhập từ tiếng Anh</label>
+            <label className="sr-only" htmlFor="lookup-word">
+              {mode === 'ja' ? 'Nhập từ tiếng Nhật' : 'Nhập từ tiếng Anh'}
+            </label>
             <div className={'search-field ' + (showSuggestions ? 'search-field-active' : '')}>
               <Search size={21} strokeWidth={1.9} aria-hidden="true" />
               <input
@@ -316,7 +512,8 @@ export default function App() {
                 autoComplete="off"
                 spellCheck={false}
                 value={query}
-                placeholder="Nhập từ tiếng Anh để tra cứu..."
+                lang={mode === 'ja' ? 'ja' : 'en'}
+                placeholder={mode === 'ja' ? 'Nhập kanji, kana hoặc romaji...' : 'Nhập từ tiếng Anh để tra cứu...'}
                 aria-autocomplete="list"
                 aria-expanded={suggestionVisible}
                 aria-controls={suggestionVisible ? suggestionId : undefined}
@@ -326,6 +523,7 @@ export default function App() {
                   setQuery(event.target.value)
                   setActiveIndex(0)
                   setShowSuggestions(true)
+                  if (mode === 'en' && containsJapanese(event.target.value)) switchMode('ja')
                 }}
                 onKeyDown={(event) => {
                   if (event.key === 'ArrowDown' && suggestions.length) {
@@ -366,12 +564,14 @@ export default function App() {
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => chooseWord(word)}
                   >
-                    <span>{word}</span>
+                    <span lang={mode === 'ja' ? 'ja' : undefined}>{word}</span>
                     <span className="suggestion-arrow" aria-hidden="true">↗</span>
                   </button>
                 )) : (
                   <p className="suggestion-message">
-                    {indexReady ? 'Không tìm thấy từ bắt đầu bằng cụm này.' : 'Đang tải danh sách từ...'}
+                    {mode === 'ja' && japaneseState === 'missing'
+                      ? 'Bản này chưa có dữ liệu tiếng Nhật.'
+                      : suggestionsReady ? 'Không tìm thấy từ bắt đầu bằng cụm này.' : 'Đang tải danh sách từ...'}
                   </p>
                 )}
               </div>
@@ -381,12 +581,29 @@ export default function App() {
       </header>
 
       <main className="main-content" id="dictionary-content">
-        <h1 className="sr-only">Lexi — từ điển Anh–Việt và Anh–Anh</h1>
+        <h1 className="sr-only">Lexi — từ điển Anh–Việt, Anh–Anh và Nhật–Việt</h1>
 
         <div className="utility-row">
-          <span className="word-count">
-            {indexError ? 'Không thể tải danh sách từ' : wordCount ? wordCount.toLocaleString('en') + ' mục từ' : 'Đang tải dữ liệu...'}
-          </span>
+          <div className="utility-start">
+            <div className="mode-switch" role="group" aria-label="Chọn từ điển">
+              {([['en', 'Anh–Việt'], ['ja', 'Nhật–Việt']] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={'mode-option' + (mode === value ? ' mode-option-active' : '')}
+                  aria-pressed={mode === value}
+                  onClick={() => switchMode(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="word-count">
+              {indexError ? 'Không thể tải danh sách từ'
+                : mode === 'ja' ? (japaneseCount ? japaneseCount.toLocaleString('en') + ' mục từ' : japaneseState === 'missing' ? 'Chưa có dữ liệu' : 'Đang tải dữ liệu...')
+                : wordCount ? wordCount.toLocaleString('en') + ' mục từ' : 'Đang tải dữ liệu...'}
+            </span>
+          </div>
           <button
             className="offline-action"
             type="button"
@@ -410,8 +627,20 @@ export default function App() {
               <h2>Không thể tải định nghĩa</h2>
               <p>{lookupError}</p>
             </div>
-          ) : entry ? (
-            <DictionaryResult entry={entry} speak={speakWord} canSpeak={canSpeak} />
+          ) : result?.mode === 'en' ? (
+            <DictionaryResult
+              entry={result.entry}
+              speak={(accent) => speakText(result.entry.headword, accent)}
+              canSpeak={canSpeak}
+            />
+          ) : result?.mode === 'ja' ? (
+            <JapaneseResult
+              key={result.lookup.headword}
+              lookup={result.lookup}
+              kanji={kanji}
+              speak={(text) => speakText(text, 'ja-JP')}
+              canSpeak={canSpeak}
+            />
           ) : (
             <div className="result-message">
               <BookOpen size={25} strokeWidth={1.6} aria-hidden="true" />
@@ -420,10 +649,10 @@ export default function App() {
             </div>
           )}
         </div>
-        {selectedWord && !loading && entry && nearbyWords.length > 0 && (
+        {selectedWord && !loading && result && nearbyWords.length > 0 && (
           <nav className="related-lookup" aria-label="Các từ có cùng tiền tố">
-            <h3>Các từ bắt đầu bằng “{entry.headword}”</h3>
-            <div className="related-words">
+            <h3>Các từ bắt đầu bằng “{result.mode === 'en' ? result.entry.headword : result.lookup.headword}”</h3>
+            <div className="related-words" lang={result.mode === 'ja' ? 'ja' : undefined}>
               {nearbyWords.map((word) => (
                 <button type="button" key={word} onClick={() => chooseWord(word)}>
                   {word}

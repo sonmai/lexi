@@ -5,6 +5,7 @@ The public build combines Skypedia (CC BY-SA), Vietnamese Wiktionary
 (CC BY-SA / GFDL), Simple English Wiktionary (CC BY-SA) and Open English
 WordNet (CC BY + Princeton). The full English Wiktionary raw extraction can
 be substituted using LEXI_EN_WIKTIONARY_SOURCE but is much larger.
+The Japanese–Vietnamese section is built by build_japanese.py.
 """
 from __future__ import annotations
 
@@ -209,6 +210,8 @@ def main():
     if os.getenv("LEXI_SKIP_IMPORT") == "1":
         print("Skip upstream import; demo data available locally", flush=True)
         return
+    import build_japanese
+
     with tempfile.TemporaryDirectory(prefix="lexi-data-") as temp:
         tmp = Path(temp)
         files = [
@@ -226,8 +229,18 @@ def main():
         from_wiktionary(tmp / "vi.jsonl.gz", data, "vi", "viwiktionary")
         from_wiktionary(tmp / "en-wiki.jsonl.gz", data, "en", "enwiktionary")
         load_wordnet(tmp / "wordnet.xml.gz", data)
+        japanese_files, japanese_hashes = build_japanese.download_japanese(tmp)
 
-    data = {word: entry for word, entry in data.items() if entry["en"] or entry["vi"]}
+        data = {word: entry for word, entry in data.items() if entry["en"] or entry["vi"]}
+        write_english(data, version)
+        del data
+        japanese = build_japanese.write_japanese(japanese_files, japanese_hashes)
+    manifest_path = TARGET / "manifest.json"
+    manifest = json.loads(manifest_path.read_text("utf-8"))
+    manifest["japanese"] = japanese
+    save_json(manifest_path, manifest)
+
+def write_english(data: dict, version: str) -> None:
     if len(data) < 100_000 and os.getenv("LEXI_ALLOW_SMALL_DATASET") != "1":
         raise RuntimeError(f"Unexpectedly few headwords: {len(data):,}")
 

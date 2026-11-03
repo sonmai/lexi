@@ -18,3 +18,21 @@ export interface DictionaryEntry {
   en: Sense[]
   vi: Sense[]
 }
+
+export interface JapaneseExample {
+  ja: string
+  vi: string
+}
+
+/** Vietnamese meanings come from Bunchaway, forms and parts of speech from JMdict, examples from Tatoeba. */
+export interface JapaneseEntry {
+  id: string
+  /** Written (kanji) forms, most common first; empty for kana-only words. */
+  forms: string[]
+  readings: string[]
+  common?: boolean
+  vi: string[]
+  /** JMdict part-of-speech codes across all senses, in order. */
+  pos: string[]
+  examples?: JapaneseExample[]
+}
