@@ -13,6 +13,8 @@ The production build currently assembles **200k+ English words/phrases** from fo
 - Simple English Wiktionary through Kaikki (English definitions, examples, usage labels and IPA).
 - Open English WordNet 2025 (additional English definitions).
 
+It also includes a **Japanese–Vietnamese dictionary** (about 238k entries) searchable by kanji, kana or romaji: Vietnamese meanings from Bunchaway, readings and English senses from JMdict, Hán Việt readings from KANJIDIC2 and example sentences from Tatoeba. Run `python3 scripts/build_japanese.py` to build only that part.
+
 The dataset is generated during deployment and may change upstream. Lexi displays English and Vietnamese sense lists independently, with a source label on each meaning. Examples from Skypedia may be generated and have not been independently verified. See [data provenance, licensing and offline technical notes](docs/DATA_SOURCES.md) and the [attribution page](public/sources.html).
 
 ## Local development

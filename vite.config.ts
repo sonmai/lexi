@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Lexi — English Dictionary',
         short_name: 'Lexi',
-        description: 'An offline-first English–Vietnamese and English–English dictionary.',
+        description: 'An offline-first English–Vietnamese, English–English and Japanese–Vietnamese dictionary.',
         theme_color: '#4d55d6',
         background_color: '#f7f8fc',
         display: 'standalone',

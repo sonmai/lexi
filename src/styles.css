@@ -170,6 +170,19 @@ a { color: inherit; text-decoration: none; }
   gap: 16px; min-height: 46px; margin: 0 0 8px;
 }
 .word-count { color: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.utility-start { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; min-width: 0; }
+.mode-switch {
+  display: inline-flex; padding: 3px; gap: 2px;
+  border: 1px solid var(--border); border-radius: 10px; background: #fff;
+}
+.mode-option {
+  min-height: 38px; padding: 0 12px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--text-secondary);
+  font-size: 13px; font-weight: 620;
+  transition: background 150ms ease, color 150ms ease;
+}
+.mode-option:hover { color: var(--accent); background: var(--surface-hover); }
+.mode-option-active, .mode-option-active:hover { color: var(--accent); background: var(--surface-selected); }
 .offline-action {
   display: inline-flex; align-items: center; justify-content: center;
   gap: 9px; padding: 10px 12px; min-height: 44px;
@@ -325,6 +338,18 @@ a { color: inherit; text-decoration: none; }
   margin: 0; color: var(--text-secondary);
   font-size: 14px; line-height: 1.7;
 }
+.japanese-summary { margin: 0 0 6px; color: var(--text-muted); font-size: 13px; }
+.japanese-entry + .japanese-entry { margin-top: 44px; padding-top: 32px; border-top: 1px solid var(--border); }
+.japanese-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; min-width: 0; }
+.japanese-reading { color: var(--text-secondary); font-size: 18px; line-height: 1.45; }
+.han-viet { color: var(--accent); font-size: 13px; font-weight: 680; letter-spacing: .6px; }
+.japanese-forms { margin: -14px 0 22px; color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+.japanese-pos { display: block; margin-bottom: 2px; color: var(--text-secondary); font-size: 12px; font-style: italic; }
+.japanese-examples { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--subtle-border); }
+.japanese-examples h3 { margin: 0 0 4px; font-size: 15px; font-weight: 720; }
+.japanese-examples h3 span { margin-left: 8px; color: var(--text-muted); font-size: 12px; font-weight: 500; }
+.japanese-examples .sense-example { margin-top: 14px; }
+.japanese-more { margin-top: 28px; }
 .result-message {
   padding: 80px 16px; display: flex; flex-direction: column;
   align-items: center; text-align: center; gap: 12px;
@@ -385,7 +410,7 @@ a { color: inherit; text-decoration: none; }
   .lookup-submit span { display: none; }
   .lookup-submit svg { display: block; }
   .search-field > svg { display: none; }
-  .utility-row { gap: 8px; }
+  .utility-row { gap: 8px; flex-wrap: wrap; }
   .offline-action { font-size: 12px; padding: 9px 5px; }
   .entry-heading { padding: 24px 0 23px; column-gap: 14px; row-gap: 5px; }
   .entry-heading h2 { font-size: 40px; letter-spacing: -1.5px; }
