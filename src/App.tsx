@@ -192,13 +192,7 @@ function JapaneseEntryView({
     <section className="japanese-entry" aria-label={headword}>
       <div className="entry-heading">
         <h2 lang="ja">{headword}</h2>
-        <div className="japanese-meta">
-          {reading && <span className="japanese-reading" lang="ja">{reading}</span>}
-          {sinoVietnamese.text && (
-            <span className="han-viet" title={'Âm Hán Việt (KANJIDIC2): ' + sinoVietnamese.full}>{sinoVietnamese.text}</span>
-          )}
-          {entry.common && <span className="usage-label">Thông dụng</span>}
-        </div>
+        {reading && <span className="japanese-reading" lang="ja">{reading}</span>}
         <button
           type="button"
           className="pronunciation-play"
@@ -210,8 +204,22 @@ function JapaneseEntryView({
           <Volume2 size={19} strokeWidth={1.9} aria-hidden="true" />
         </button>
       </div>
-      {otherForms.length > 0 && (
-        <p className="japanese-forms">Cách viết khác: <span lang="ja">{otherForms.join('、')}</span></p>
+      {(sinoVietnamese.text || otherForms.length > 0 || entry.common) && (
+        <div className="japanese-details">
+          {sinoVietnamese.text && (
+            <p>
+              <span className="detail-label">Hán Việt</span>
+              <span className="han-viet" title={'KANJIDIC2: ' + sinoVietnamese.full}>{sinoVietnamese.text}</span>
+            </p>
+          )}
+          {otherForms.length > 0 && (
+            <p>
+              <span className="detail-label">Cách viết khác</span>
+              <span lang="ja">{otherForms.join('、')}</span>
+            </p>
+          )}
+          {entry.common && <span className="usage-label">Thông dụng</span>}
+        </div>
       )}
       <div className="definition-columns">
         <section className="definition-column" aria-label="Nhật – Việt">
