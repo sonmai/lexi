@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import { EnglishResult } from './components/EnglishResult'
 import { JapaneseResult } from './components/JapaneseResult'
@@ -8,14 +8,16 @@ import { JapanFlag, UnitedKingdomFlag } from './flags'
 import { useDictionaryIndex, useKanjiReadings, useSuggestions } from './hooks/useDictionaryIndex'
 import { useLookup } from './hooks/useLookup'
 import { useOfflineDictionary } from './hooks/useOfflineDictionary'
-import { readRoute, useRoute, type Mode } from './hooks/useRoute'
+import { navigate, useRoute, type Mode } from './hooks/useRoute'
 import { useSpeech } from './hooks/useSpeech'
 import { containsJapanese, normalizeJapanese } from './utils/japanese'
 
 export default function App() {
-  const [route, navigate] = useRoute()
+  const { route, navigation } = useRoute()
   const { word: selectedWord, mode } = route
-  const [query, setQuery] = useState(route.word)
+  // Typed text belongs to one navigation; any navigation, including Back, shows the route's word again.
+  const [draft, setDraft] = useState<{ text: string; navigation: number } | null>(null)
+  const query = draft?.navigation === navigation ? draft.text : route.word
   const searchInput = useRef<HTMLInputElement>(null)
 
   const english = useDictionaryIndex('en', true)
@@ -29,12 +31,6 @@ export default function App() {
   const offline = useOfflineDictionary()
   const { canSpeak, speak } = useSpeech()
 
-  useEffect(() => {
-    const sync = () => setQuery(readRoute().word)
-    window.addEventListener('popstate', sync)
-    return () => window.removeEventListener('popstate', sync)
-  }, [])
-
   const nearbyWords = mode === 'ja'
     ? nearby.words.filter((word) => normalizeJapanese(word) !== normalizeJapanese(selectedWord)).slice(0, 8)
     : nearby.words.filter((word) => word.toLowerCase() !== selectedWord.toLowerCase()).slice(0, 8)
@@ -46,16 +42,15 @@ export default function App() {
   function chooseWord(word: string) {
     const term = word.trim()
     if (!term) return
-    setQuery(term)
     navigate({ word: term, mode }, true)
   }
 
   /** Clears the current lookup; `typed` keeps text that triggered the switch, such as kana typed in English mode. */
   function switchMode(nextMode: Mode, typed = '') {
     if (nextMode === mode) return
-    setQuery(typed)
     // Pushing lets Back restore the cleared lookup.
-    navigate({ word: '', mode: nextMode }, Boolean(selectedWord))
+    const next = navigate({ word: '', mode: nextMode }, Boolean(selectedWord))
+    setDraft(typed ? { text: typed, navigation: next } : null)
     searchInput.current?.focus()
   }
 
@@ -69,7 +64,7 @@ export default function App() {
             mode={mode}
             query={query}
             onQueryChange={(value) => {
-              setQuery(value)
+              setDraft({ text: value, navigation })
               if (mode === 'en' && containsJapanese(value)) switchMode('ja', value)
             }}
             suggestions={suggestions.words}
