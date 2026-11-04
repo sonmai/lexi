@@ -10,9 +10,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Lexi — English Dictionary',
+        name: 'Lexi — Từ điển Anh–Việt, Nhật–Việt',
         short_name: 'Lexi',
-        description: 'An offline-first English–Vietnamese, English–English and Japanese–Vietnamese dictionary.',
+        lang: 'vi',
+        description: 'Từ điển Anh–Việt, Anh–Anh và Nhật–Việt, dùng được cả khi offline.',
         theme_color: '#4d55d6',
         background_color: '#f7f8fc',
         display: 'standalone',
