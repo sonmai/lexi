@@ -27,7 +27,7 @@ export function SearchBox({
   onChoose: (word: string) => void
   inputRef: RefObject<HTMLInputElement | null>
 }) {
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [activeIndex, setActiveIndex] = useState(-1)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [ledLap, setLedLap] = useState(0)
   const [focused, setFocused] = useState(false)
@@ -68,7 +68,7 @@ export function SearchBox({
 
   function choose(word: string) {
     setShowSuggestions(false)
-    setActiveIndex(0)
+    setActiveIndex(-1)
     setLedLap((lap) => lap + 1)
     inputRef.current?.blur()
     onChoose(word)
@@ -81,7 +81,7 @@ export function SearchBox({
       ref={root}
       onSubmit={(event) => {
         event.preventDefault()
-        choose(suggestions[activeIndex] ?? query)
+        choose((suggestionVisible && suggestions[activeIndex]) || query)
       }}
     >
       <label className="sr-only" htmlFor="lookup-word">
@@ -105,25 +105,27 @@ export function SearchBox({
           aria-autocomplete="list"
           aria-expanded={suggestionVisible}
           aria-controls={suggestionVisible ? suggestionId : undefined}
-          aria-activedescendant={suggestionVisible && suggestions.length ? suggestionId + '-' + activeIndex : undefined}
+          aria-activedescendant={suggestionVisible && suggestions[activeIndex] ? suggestionId + '-' + activeIndex : undefined}
           onFocus={() => {
             setFocused(true)
+            setActiveIndex(-1)
             setShowSuggestions(true)
             setLedLap((lap) => lap + 1)
           }}
           onBlur={() => setFocused(false)}
           onChange={(event) => {
-            setActiveIndex(0)
+            setActiveIndex(-1)
             setShowSuggestions(true)
             onQueryChange(event.target.value)
           }}
           onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing || !suggestionVisible) return
             if (event.key === 'ArrowDown' && suggestions.length) {
               event.preventDefault()
               setActiveIndex((previous) => (previous + 1) % suggestions.length)
             } else if (event.key === 'ArrowUp' && suggestions.length) {
               event.preventDefault()
-              setActiveIndex((previous) => (previous + suggestions.length - 1) % suggestions.length)
+              setActiveIndex((previous) => previous <= 0 ? suggestions.length - 1 : previous - 1)
             } else if (event.key === 'Tab') {
               setShowSuggestions(false)
             }
@@ -134,7 +136,7 @@ export function SearchBox({
             className="clear-search"
             type="button"
             aria-label="Xóa từ đã nhập"
-            onClick={() => { onQueryChange(''); setActiveIndex(0); inputRef.current?.focus() }}
+            onClick={() => { onQueryChange(''); setActiveIndex(-1); inputRef.current?.focus() }}
           >
             <X size={18} strokeWidth={1.9} />
           </button>

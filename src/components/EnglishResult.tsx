@@ -135,6 +135,12 @@ export function EnglishResult({
           )}
         </div>
       </div>
+      {entry.vi.length > 0 && entry.en.length > 0 && (
+        <nav className="meaning-links" aria-label="Đi đến phần nghĩa">
+          <a href="#vi-heading">Nghĩa Việt</a>
+          <a href="#en-heading">Nghĩa Anh</a>
+        </nav>
+      )}
       <div className="definition-columns">
         <section className="definition-column" aria-labelledby="vi-heading">
           <div className="definition-heading">

@@ -476,10 +476,25 @@ a { color: inherit; text-decoration: none; }
   margin: 0; color: var(--text-secondary);
   font-size: 14px; line-height: 1.7;
 }
-.japanese-summary {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
-  margin: 0 4px 28px; color: var(--text-muted); font-size: 13px;
+.meaning-links { display: none; }
+.retry-lookup, .summary-toggle {
+  min-height: 44px; padding: 0 14px; border: 0; border-radius: 12px;
+  background: var(--surface-soft); color: var(--text-primary); font-weight: 600;
 }
+.retry-lookup:hover, .summary-toggle:hover { background: var(--surface-hover); }
+.japanese-summary { margin: 0 4px 28px; max-width: 640px; }
+.japanese-summary > p { margin: 0 0 6px; color: var(--text-primary); font-size: 14px; font-weight: 650; }
+.japanese-summary > p span { color: var(--text-muted); font-weight: 400; }
+.japanese-choices { display: grid; grid-template-columns: minmax(0, 1fr); }
+.japanese-choices button {
+  display: flex; align-items: baseline; gap: 14px; min-height: 44px; padding: 10px 4px;
+  text-align: left; border: 0; border-bottom: 1px solid var(--edge); background: transparent;
+  color: var(--text-primary);
+}
+.japanese-choices button:hover { background: var(--surface-soft); }
+.japanese-choices strong { overflow-wrap: anywhere; max-width: 45%; }
+.japanese-choices span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+.summary-toggle { margin-top: 8px; font-size: 13px; }
 .japanese-summary .word-chips button { min-height: 34px; padding: 5px 14px; font-size: 15px; }
 .japanese-entry { display: grid; gap: 18px; scroll-margin-top: 104px; }
 .japanese-entry .entry-heading { padding-bottom: 0; }
@@ -631,6 +646,12 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media (max-width: 720px) {
+  .meaning-links { display: flex; align-items: center; gap: 20px; }
+  .meaning-links a {
+    display: inline-flex; align-items: center; min-height: 44px; color: var(--accent);
+    font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .definition-heading h3 { scroll-margin-top: 96px; }
   .header-inner { min-height: 68px; padding: 10px 22px; gap: 16px; }
   .main-content { padding: 8px 22px 80px; }
   .definition-columns { grid-template-columns: minmax(0,1fr); gap: 14px; }

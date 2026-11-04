@@ -6,9 +6,9 @@ import type { Route } from './useRoute'
 
 export type LookupResult = { mode: 'en'; entry: DictionaryEntry } | { mode: 'ja'; lookup: JapaneseLookup }
 
-export function useLookup({ word, mode }: Route) {
+export function useLookup({ word, mode }: Route, retryAttempt: number) {
   const [answered, setAnswered] = useState<{ key: string; result: LookupResult | null; error: string } | null>(null)
-  const key = word ? mode + '\n' + word : ''
+  const key = word ? retryAttempt + '\n' + mode + '\n' + word : ''
 
   useEffect(() => {
     if (!key) return

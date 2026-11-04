@@ -40,6 +40,7 @@ export function navigate(next: Route, push: boolean): number {
   if (next.mode === 'ja') url.searchParams.set('lang', 'ja')
   else url.searchParams.delete('lang')
   if (window.location.search !== url.search) {
+    url.hash = ''
     if (push) window.history.pushState({}, '', url)
     else window.history.replaceState({}, '', url)
   }

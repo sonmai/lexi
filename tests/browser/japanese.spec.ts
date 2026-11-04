@@ -54,7 +54,7 @@ test('romaji input finds Japanese words with Vietnamese meanings and Hán Việt
   await input.press('Enter')
   await expect(page.getByRole('heading', { name: '食べる', exact: true })).toBeVisible()
   const params = new URL(page.url()).searchParams
-  expect([params.get('q'), params.get('lang')]).toEqual(['たべる', 'ja'])
+  expect([params.get('q'), params.get('lang')]).toEqual(['taberu', 'ja'])
   await expect(page.getByText('THỰC', { exact: true })).toBeVisible()
   await expect(page.getByText('Ăn', { exact: true })).toBeVisible()
   await expect(page.getByText('Động từ nhóm 2 · Ngoại động từ')).toBeVisible()
@@ -77,13 +77,13 @@ test('typing kana switches to Japanese and shows every homograph', async ({ page
   await expect(page.getByRole('button', { name: 'Nhật–Việt', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await input.press('Enter')
   const jump = page.getByRole('navigation', { name: '2 mục cho はし' })
-  await expect(jump.getByRole('button')).toHaveText(['橋', '箸'])
-  await jump.getByRole('button', { name: '箸' }).click()
+  await expect(jump.getByRole('button', { name: /橋.*Cây cầu/ })).toBeVisible()
+  await jump.getByRole('button', { name: /箸.*Đôi đũa/ }).click()
   await expect(page.getByRole('heading', { name: '箸', exact: true })).toBeInViewport()
   await expect(page.getByRole('heading', { name: '橋', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: '箸', exact: true })).toBeVisible()
   await expect(page.getByText('橋 Kiều/Khiêu', { exact: true })).toBeVisible()
-  await expect(page.getByText('Đôi đũa', { exact: true })).toBeVisible()
+  await expect(page.getByRole('region', { name: '箸', exact: true }).getByText('Đôi đũa', { exact: true })).toBeVisible()
 })
 
 test('switching dictionaries clears the lookup, and Back restores it', async ({ page }) => {

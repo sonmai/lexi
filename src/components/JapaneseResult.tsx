@@ -7,6 +7,8 @@ import { isKanji, japanesePartOfSpeech } from '../utils/japanese'
 
 const COLLAPSED_JAPANESE_ENTRIES = 8
 
+const SUMMARY_PREVIEW = 3
+
 const entryId = (entry: JapaneseEntry) => 'ja-entry-' + entry.id
 
 /**
@@ -42,7 +44,7 @@ function JapaneseEntryView({
   const otherForms = entry.forms.slice(1)
   const partsOfSpeech = [...new Set(entry.pos.map(japanesePartOfSpeech))]
   return (
-    <section className="japanese-entry" id={entryId(entry)} aria-label={headword}>
+    <section className="japanese-entry" id={entryId(entry)} tabIndex={-1} aria-label={headword}>
       <div className="entry-heading">
         <h2 lang="ja">{headword}</h2>
         {reading && <span className="japanese-reading" lang="ja">{reading}</span>}
@@ -136,26 +138,37 @@ export function JapaneseResult({
   speakingText?: string
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [showAllChoices, setShowAllChoices] = useState(false)
+  const choices = showAllChoices ? lookup.entries : lookup.entries.slice(0, SUMMARY_PREVIEW)
   const visible = expanded ? lookup.entries : lookup.entries.slice(0, COLLAPSED_JAPANESE_ENTRIES)
 
   function jumpTo(entry: JapaneseEntry) {
     if (!visible.includes(entry)) flushSync(() => setExpanded(true))
     const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches
-    document.getElementById(entryId(entry))?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' })
+    const target = document.getElementById(entryId(entry))
+    target?.focus({ preventScroll: true })
+    target?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' })
   }
 
   return (
     <article className="dictionary-result japanese-result">
       {lookup.entries.length > 1 && (
         <nav className="japanese-summary" aria-label={`${lookup.entries.length} mục cho ${lookup.headword}`}>
-          <span>{lookup.entries.length} mục:</span>
-          <div className="word-chips" lang="ja">
-            {lookup.entries.map((entry) => (
+          <p>Chọn nghĩa <span>({lookup.entries.length} mục)</span></p>
+          <div className="japanese-choices" id="japanese-choices">
+            {choices.map((entry) => (
               <button type="button" key={entry.id} onClick={() => jumpTo(entry)}>
-                {entry.forms[0] ?? entry.readings[0]}
+                <strong lang="ja">{entry.forms[0] ?? entry.readings[0]}</strong>
+                <span>{entry.vi[0]}</span>
               </button>
             ))}
           </div>
+          {lookup.entries.length > SUMMARY_PREVIEW && (
+            <button type="button" className="summary-toggle" aria-expanded={showAllChoices}
+              aria-controls="japanese-choices" onClick={() => setShowAllChoices(!showAllChoices)}>
+              {showAllChoices ? 'Thu gọn danh sách' : `Xem cả ${lookup.entries.length} mục`}
+            </button>
+          )}
         </nav>
       )}
       {visible.map((entry) => (
