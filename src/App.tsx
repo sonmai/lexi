@@ -2,13 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import { EnglishResult } from './components/EnglishResult'
 import { JapaneseResult } from './components/JapaneseResult'
-import { OfflineButton } from './components/OfflineButton'
 import { SearchBox, shortcutLabel } from './components/SearchBox'
 import { JapanFlag, UnitedKingdomFlag } from './flags'
 import { useDictionaryIndex, useKanjiReadings, useSuggestions } from './hooks/useDictionaryIndex'
 import { useLookup } from './hooks/useLookup'
 import { clearLookups, useRecentLookups } from './hooks/useRecentLookups'
-import { useOfflineDictionary } from './hooks/useOfflineDictionary'
 import { navigate, useRoute, type Mode } from './hooks/useRoute'
 import { useSpeech } from './hooks/useSpeech'
 import { containsJapanese, normalizeJapanese } from './utils/japanese'
@@ -33,7 +31,6 @@ export default function App() {
   const { result, loading, error: lookupError } = useLookup(route)
   const notFound = Boolean(selectedWord) && !loading && !lookupError && !result
   const similar = useSuggestions(mode, selectedWord, indexReady && notFound, 6, true)
-  const offline = useOfflineDictionary()
   const { canSpeak, speak, speaking } = useSpeech()
   const recent = useRecentLookups(mode)
   const headword = result?.mode === 'en' ? result.entry.headword : result?.lookup.headword
@@ -50,7 +47,7 @@ export default function App() {
   const emptyMessage = index.status === 'missing'
     ? 'Bản này chưa có dữ liệu tiếng Nhật.'
     : indexReady && !suggestions.pending ? 'Không tìm thấy từ bắt đầu bằng cụm này.' : 'Đang tải danh sách từ...'
-  const errors = [english.error, japanese.error, offline.error].filter(Boolean)
+  const errors = [english.error, japanese.error].filter(Boolean)
 
   function chooseWord(word: string) {
     const term = word.trim()
@@ -115,20 +112,8 @@ export default function App() {
                 : 'Đang tải dữ liệu...'}
             </span>
           </div>
-          <OfflineButton
-            key={mode}
-            section={mode}
-            status={offline.status[mode]}
-            download={offline.download}
-            onDownload={(section) => void offline.start(section)}
-          />
         </div>
         {errors.length > 0 && <p className="inline-error" role="alert">{errors.join(' ')}</p>}
-        {offline.mayBeEvicted && (
-          <p className="inline-note">
-            Trình duyệt có thể xoá dữ liệu offline khi thiếu dung lượng. Thêm Lexi vào màn hình chính để giữ lâu hơn.
-          </p>
-        )}
 
         {!selectedWord && (
           <section className="home" key={mode} aria-labelledby="home-heading">

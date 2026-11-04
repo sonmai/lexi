@@ -1,0 +1,4 @@
+# The version is part of the path, so a new dictionary never reuses these URLs.
+# /dictionary/manifest.json keeps the Workers default: public, max-age=0, must-revalidate.
+/dictionary/data/*
+  Cache-Control: public, max-age=31536000, immutable

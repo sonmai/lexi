@@ -13,7 +13,7 @@ export default defineConfig({
         name: 'Lexi — Từ điển Anh–Việt, Nhật–Việt',
         short_name: 'Lexi',
         lang: 'vi',
-        description: 'Từ điển Anh–Việt, Anh–Anh và Nhật–Việt, dùng được cả khi offline.',
+        description: 'Từ điển Anh–Việt, Anh–Anh và Nhật–Việt.',
         theme_color: '#fcfcfb',
         background_color: '#fcfcfb',
         display: 'standalone',
@@ -25,19 +25,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,json}'],
-        globIgnores: ['**/dictionary/**'],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.pathname === '/dictionary/manifest.json',
-            handler: 'NetworkFirst',
-            options: { cacheName: 'lexi-manifest-v1', networkTimeoutSeconds: 5 }
-          },
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/dictionary/data/'),
-            handler: 'CacheFirst',
-            options: { cacheName: 'lexi-dictionary-v2' }
-          }
-        ]
+        globIgnores: ['**/dictionary/**']
       }
     })
   ]

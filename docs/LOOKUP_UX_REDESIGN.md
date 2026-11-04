@@ -9,7 +9,7 @@ Reference: [VDict](https://vdict.com/) and [VDict's explanation of search featur
 - **Explicit submit action:** Keep Enter, live suggestions and Cmd/Ctrl+K; add a visible “Tra” submit button on desktops and an icon submit button on mobile.
 - **Continuous reading:** Headword, UK/US IPA and speaker first; directly followed by the already implemented bilingual panels and grouped parts of speech.
 - **Browse nearby headwords:** Where prefix matches exist, provide unobtrusive clickable entries below the definitions. Label truthfully “Các từ bắt đầu bằng” rather than asserting synonymy or etymological relationships.
-- **Keep only essential metadata:** Word count and one offline download affordance remain as a subtle row.
+- **Keep only essential metadata:** Word count remains as a subtle row beside the dictionary switch.
 
 ## What Lexi deliberately rejects
 
@@ -24,7 +24,7 @@ Reference: [VDict](https://vdict.com/) and [VDict's explanation of search featur
 - Search from the iPhone keyboard or tap submit; ensure combobox suggestions and arrow/Enter/Escape behavior remain usable.
 - On desktop, searching long entries must not hide the input while scrolling; mobile header should scroll normally.
 - Click related headword; ensure URL and word entry update and browser back works.
-- Recheck UK/US audio controls, part-of-speech grouping, word count, source attribution link and offline controls.
+- Recheck UK/US audio controls, part-of-speech grouping, word count and the source attribution link.
 - Respect reduced motion and focus visibility.
 
 The style remains minimalist: white background, indigo accent, strong readable text; it borrows information architecture and interaction patterns, not VDict's branding or dictionary data.

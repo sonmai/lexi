@@ -42,4 +42,4 @@ jobs:
           git commit -m "Pin dictionary data $TAG"
           git push origin "data/$TAG"
           gh pr create --title "Pin dictionary data $TAG" \
-            --body "Updates \`data.lock.json\` to the archive published in release $TAG. Merging deploys this data; users with an offline copy keep their current version until they choose to update."
+            --body "Updates \`data.lock.json\` to the archive published in release $TAG. Merging deploys this data on the next visit."
