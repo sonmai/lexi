@@ -1,20 +1,55 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Lexi — data sources and licences</title><style>html{background:#fcfcfb}body{font:16px/1.7 system-ui,sans-serif;margin:40px auto;padding:0 20px;max-width:760px;color:#37352f}a{color:#9a6a1f;text-decoration-thickness:1px;text-underline-offset:3px}h1,h2{font-family:ui-rounded,system-ui,sans-serif;line-height:1.25}li{margin-bottom:12px}</style></head>
-<body><p><a href="/">← Back to dictionary</a></p><h1>Dictionary data and licences</h1>
-<p>Lexi keeps English and Vietnamese definitions in independent lists. Meanings are not necessarily in one-to-one correspondence.</p>
-<h2>Vietnamese meanings</h2>
-<p>Lexi adds the <a href="https://github.com/skypediacode/english-vietnamese-dictionary">Skypedia English–Vietnamese Dictionary</a> (CC BY-SA 4.0) derived from <a href="https://github.com/minhqnd/dictionary">MinhQND Dictionary</a>, including learner-friendly examples, idioms and phrasal verbs. The source describes some examples as generated and reports using GPLv2-licensed OVDP as a reference to correct headwords. See <a href="/dictionary-sources/SKYPEDIA_ATTRIBUTION.md">Skypedia's full attribution document</a> and <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. The resulting adapted dictionary content from Skypedia is made available under CC BY-SA 4.0; the application code is separate.</p>
-<p>Extracted from <a href="https://vi.wiktionary.org/">Vietnamese Wiktionary</a> via <a href="https://kaikki.org/viwiktionary/">Kaikki / Wiktextract</a>. Wiktionary contributions are distributed under Creative Commons Attribution–ShareAlike and, where applicable, GNU Free Documentation License; consult <a href="https://vi.wiktionary.org/wiki/Wiktionary:Quyền_tác_giả">Wiktionary copyright details</a>. Data has been filtered and transformed into versioned lookup files.</p>
-<h2>English meanings</h2>
-<p>Common English entries are enriched with <a href="https://simple.wiktionary.org/">Simple English Wiktionary</a>, extracted via <a href="https://kaikki.org/simplewiktionary/rawdata.html">Kaikki/Wiktextract</a>, under Wiktionary's CC BY-SA / GFDL terms. The production build uses the smaller Simple English edition by default to keep Cloudflare build times and mobile downloads practical; full English Wiktionary can be imported separately using the build's source override.</p>
-<p>English definitions are derived from <a href="https://en-word.net/">Open English WordNet (2025 edition)</a>, developed by the Open English WordNet Team under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Open English WordNet incorporates material from <a href="https://wordnet.princeton.edu/">Princeton WordNet</a> under the WordNet Licence. See <a href="https://github.com/globalwordnet/english-wordnet/blob/main/LICENSE.md">full licence and attribution</a>.</p>
-<h2>Japanese–Vietnamese</h2>
-<p>Japanese entries, readings and parts of speech come from <a href="https://www.edrdg.org/jmdict/j_jmdict.html">JMdict</a>, the property of the <a href="https://www.edrdg.org/">Electronic Dictionary Research and Development Group</a>, used in conformance with the Group's <a href="https://www.edrdg.org/edrdg/licence.html">licence</a> (<a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>), via <a href="https://github.com/scriptin/jmdict-simplified">jmdict-simplified</a>. Hán Việt readings come from <a href="https://www.edrdg.org/kanjidic/kanjidic2.html">KANJIDIC2</a> (EDRDG, CC BY-SA 4.0), with Vietnamese readings supplied by Minh Chau Pham.</p>
-<p>Vietnamese meanings come from the <a href="https://github.com/bunchaway/tu-dien-nhat-viet">Bunchaway Japanese–Vietnamese Dictionary</a> (CC BY-SA 4.0). Its meanings are keyed by written form only, so Lexi assigns each one to a single entry among homographs and leaves out entries without a Vietnamese meaning; the meanings have not been independently verified.</p>
-<p>Japanese definitions ("Nhật – Nhật") come from <a href="https://ja.wiktionary.org/">Japanese Wiktionary</a> (CC BY-SA 4.0), via the <a href="https://kaikki.org/jawiktionary/rawdata.html">Wiktextract data published by kaikki.org</a>, matched to JMdict entries by spelling and reading.</p>
-<p>Example sentences and their Vietnamese translations come from <a href="https://tatoeba.org/">Tatoeba</a> (<a href="https://creativecommons.org/licenses/by/2.0/fr/">CC BY 2.0 FR</a>), linked to words through Tatoeba's Japanese word index.</p>
-<h2>About transformations</h2>
-<p>The Lexi import pipeline normalises spelling, groups definitions under each headword, removes duplicate definitions, keeps per-sense source identifiers and distributes the result as static JSON chunks. Some Skypedia examples are machine-generated and may be inaccurate; they are not independently verified by Lexi. Neither source is endorsed by Lexi. Definitions, IPA and examples may be missing or imperfect.</p>
-<p>For the exact versions, view the <a href="/dictionary/manifest.json">source manifest</a>.</p>
+<html lang="vi"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#fcfcfb"/>
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2a2a28"/>
+<title>Nguồn &amp; giấy phép dữ liệu · Lexi</title>
+<style>
+:root{color-scheme:light dark;--bg:#fcfcfb;--surface:#fff;--soft:#f4f3f1;--text:#37352f;--muted:#5f5e5b;--link:#845a17;--edge:rgba(55,53,47,.09)}
+@media (prefers-color-scheme:dark){:root{--bg:#2a2a28;--surface:#333331;--soft:#3e3e3b;--text:#ecebe6;--muted:#c2bfb8;--link:#e8bd78;--edge:rgba(255,255,255,.07)}}
+html{background:var(--bg)}
+body{margin:0 auto;padding:32px 20px 64px;max-width:760px;color:var(--text);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+h1,h2{font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif;line-height:1.25;letter-spacing:-.3px}
+h1{margin:28px 0 12px;font-size:clamp(28px,5vw,36px)}
+h2{margin:0 0 10px;font-size:19px}
+p{margin:0 0 12px}
+section{margin-top:18px;padding:24px 28px;border-radius:24px;background:var(--surface);box-shadow:0 0 0 1px var(--edge),0 8px 28px rgba(0,0,0,.04)}
+section p:last-child{margin-bottom:0}
+.back{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:999px;background:var(--soft);color:var(--text);text-decoration:none;font-size:14px;font-weight:600}
+.back:hover{background:var(--edge)}
+.lead,.note{color:var(--muted)}
+.note{margin-top:24px;font-size:14px}
+@media (max-width:480px){section{padding:20px 18px;border-radius:20px}}
+</style></head>
+<body>
+<a class="back" href="/">← Về từ điển</a>
+<h1>Nguồn dữ liệu và giấy phép</h1>
+<p class="lead">Lexi trình bày nghĩa tiếng Anh và tiếng Việt thành hai danh sách độc lập. Các nghĩa không nhất thiết tương ứng một–một với nhau.</p>
+
+<section>
+<h2>Nghĩa tiếng Việt (Anh–Việt)</h2>
+<p>Lexi bổ sung <a href="https://github.com/skypediacode/english-vietnamese-dictionary">Từ điển Anh–Việt Skypedia</a> (CC BY-SA 4.0), được phát triển từ <a href="https://github.com/minhqnd/dictionary">MinhQND Dictionary</a>, gồm các ví dụ dễ hiểu cho người học, thành ngữ và cụm động từ. Nguồn này cho biết một số ví dụ được tạo tự động và có tham khảo OVDP (giấy phép GPLv2) để sửa mục từ. Xem <a href="/dictionary-sources/SKYPEDIA_ATTRIBUTION.md">tài liệu ghi công đầy đủ của Skypedia</a> và <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Nội dung từ điển chuyển thể từ Skypedia được cung cấp theo CC BY-SA 4.0; mã nguồn ứng dụng là phần riêng biệt.</p>
+<p>Trích xuất từ <a href="https://vi.wiktionary.org/">Wiktionary tiếng Việt</a> qua <a href="https://kaikki.org/viwiktionary/">Kaikki / Wiktextract</a>. Các đóng góp trên Wiktionary được phân phối theo giấy phép Creative Commons Ghi công–Chia sẻ tương tự và, khi áp dụng, Giấy phép Tài liệu Tự do GNU; xem <a href="https://vi.wiktionary.org/wiki/Wiktionary:Quyền_tác_giả">chi tiết bản quyền của Wiktionary</a>. Dữ liệu đã được lọc và chuyển thành các tệp tra cứu có phiên bản.</p>
+</section>
+
+<section>
+<h2>Nghĩa tiếng Anh (Anh–Anh)</h2>
+<p>Các mục từ tiếng Anh thông dụng được bổ sung từ <a href="https://simple.wiktionary.org/">Simple English Wiktionary</a>, trích xuất qua <a href="https://kaikki.org/simplewiktionary/rawdata.html">Kaikki/Wiktextract</a>, theo điều khoản CC BY-SA / GFDL của Wiktionary. Bản phát hành mặc định dùng phiên bản Simple English gọn nhẹ hơn để thời gian build trên Cloudflare và dung lượng tải trên điện thoại ở mức hợp lý; có thể nhập Wiktionary tiếng Anh đầy đủ riêng bằng tuỳ chọn thay nguồn khi build.</p>
+<p>Định nghĩa tiếng Anh lấy từ <a href="https://en-word.net/">Open English WordNet (bản 2025)</a>, do nhóm Open English WordNet phát triển theo giấy phép <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Open English WordNet có sử dụng tư liệu từ <a href="https://wordnet.princeton.edu/">Princeton WordNet</a> theo Giấy phép WordNet. Xem <a href="https://github.com/globalwordnet/english-wordnet/blob/main/LICENSE.md">giấy phép và ghi công đầy đủ</a>.</p>
+</section>
+
+<section>
+<h2>Nhật–Việt</h2>
+<p>Mục từ, cách đọc và từ loại tiếng Nhật lấy từ <a href="https://www.edrdg.org/jmdict/j_jmdict.html">JMdict</a>, thuộc sở hữu của <a href="https://www.edrdg.org/">Electronic Dictionary Research and Development Group</a>, được sử dụng theo <a href="https://www.edrdg.org/edrdg/licence.html">giấy phép</a> của nhóm (<a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>), qua <a href="https://github.com/scriptin/jmdict-simplified">jmdict-simplified</a>. Âm Hán Việt lấy từ <a href="https://www.edrdg.org/kanjidic/kanjidic2.html">KANJIDIC2</a> (EDRDG, CC BY-SA 4.0), với phần âm đọc tiếng Việt do Minh Chau Pham cung cấp.</p>
+<p>Nghĩa tiếng Việt lấy từ <a href="https://github.com/bunchaway/tu-dien-nhat-viet">Từ điển Nhật–Việt Bunchaway</a> (CC BY-SA 4.0). Nguồn này chỉ gắn nghĩa theo cách viết, nên Lexi gán mỗi nghĩa cho một mục duy nhất trong các từ đồng tự và bỏ qua các mục không có nghĩa tiếng Việt; các nghĩa này chưa được kiểm chứng độc lập.</p>
+<p>Định nghĩa tiếng Nhật (“Nhật – Nhật”) lấy từ <a href="https://ja.wiktionary.org/">Wiktionary tiếng Nhật</a> (CC BY-SA 4.0), qua <a href="https://kaikki.org/jawiktionary/rawdata.html">dữ liệu Wiktextract do kaikki.org công bố</a>, được ghép với các mục JMdict theo cách viết và cách đọc.</p>
+<p>Câu ví dụ và bản dịch tiếng Việt lấy từ <a href="https://tatoeba.org/">Tatoeba</a> (<a href="https://creativecommons.org/licenses/by/2.0/fr/">CC BY 2.0 FR</a>), liên kết với từ qua chỉ mục từ tiếng Nhật của Tatoeba.</p>
+</section>
+
+<section>
+<h2>Về quá trình xử lý</h2>
+<p>Quy trình nhập dữ liệu của Lexi chuẩn hoá chính tả, nhóm định nghĩa theo từng mục từ, loại bỏ định nghĩa trùng lặp, giữ mã nguồn của từng nghĩa và phân phối kết quả dưới dạng các tệp JSON tĩnh. Một số ví dụ của Skypedia do máy tạo và có thể không chính xác; Lexi chưa kiểm chứng độc lập các ví dụ này. Không nguồn nào trong số trên bảo trợ cho Lexi. Định nghĩa, phiên âm IPA và ví dụ có thể thiếu hoặc chưa hoàn hảo.</p>
+</section>
+
+<p class="note">Để biết chính xác phiên bản của từng nguồn, xem <a href="/dictionary/manifest.json">tệp manifest nguồn dữ liệu</a>.</p>
 </body></html>

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { test } from 'node:test'
 import { englishChunk, normaliseEnglish } from '../src/utils/english.ts'
-import { suggestEnglish, suggestJapanese } from '../src/utils/prefixSearch.ts'
+import { similarEnglish, similarJapanese, suggestEnglish, suggestJapanese } from '../src/utils/prefixSearch.ts'
 
 const samples = ['Example', '  New   York ', 'ﬁnance', 'Ǆungla', 'İstanbul', 'ＡＢＣ', 'x-ray', 'a', "'twas", '3d', 'Ω', 'ᴮoat']
 
@@ -27,6 +27,21 @@ test('English suggestions are prefix matches in index order', () => {
   assert.deepEqual(suggestEnglish(words, 'ex', 3), ['ex', 'example', 'excellent'])
   assert.deepEqual(suggestEnglish(words, 'zz'), [])
   assert.deepEqual(suggestEnglish(words, '   '), [])
+})
+
+test('misspellings suggest the closest words sharing the first letter', () => {
+  const words = ['receipt', 'receive', 'received', 'recipe', 'relieve', 'sieve']
+  // One edit (a swap counts as one) ranks before two; ties keep index order.
+  assert.deepEqual(similarEnglish(words, 'recieve'), ['receive', 'relieve', 'received', 'recipe'])
+  assert.deepEqual(similarEnglish(words, 'recieve', 1), ['receive'])
+  assert.deepEqual(similarEnglish(words, 'zzzz'), [])
+  assert.deepEqual(similarEnglish(words, 'r'), [])
+})
+
+test('Japanese close matches share the longest known prefix', () => {
+  const words = ['たべもの', 'たべる', 'のむ']
+  assert.deepEqual(similarJapanese(words, 'たべた'), ['たべもの', 'たべる'])
+  assert.deepEqual(similarJapanese(words, 'ねる'), [])
 })
 
 test('Japanese suggestions search kana conversions of romaji first', () => {

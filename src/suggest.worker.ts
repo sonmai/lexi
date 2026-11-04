@@ -1,11 +1,11 @@
 import type { Section } from './dictionary-service'
-import { suggestEnglish, suggestJapanese } from './utils/prefixSearch'
+import { similarEnglish, similarJapanese, suggestEnglish, suggestJapanese } from './utils/prefixSearch'
 
 /** Parses the multi-megabyte suggestion indexes and answers prefix queries off the main thread. */
 
 export type SuggestRequest =
   | { type: 'load'; section: Section; buffer: ArrayBuffer }
-  | { type: 'suggest'; section: Section; input: string; limit: number }
+  | { type: 'suggest' | 'similar'; section: Section; input: string; limit: number }
 
 export type SuggestResponse = { id: number; words?: string[]; error?: string }
 
@@ -24,7 +24,9 @@ self.onmessage = (event: MessageEvent<SuggestRequest & { id: number }>) => {
       reply({})
     } else {
       const words = indexes.get(request.section) ?? []
-      const search = request.section === 'ja' ? suggestJapanese : suggestEnglish
+      const search = request.type === 'similar'
+        ? request.section === 'ja' ? similarJapanese : similarEnglish
+        : request.section === 'ja' ? suggestJapanese : suggestEnglish
       reply({ words: search(words, request.input, request.limit) })
     }
   } catch (error) {

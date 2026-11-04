@@ -58,6 +58,53 @@ test('autocomplete, shortcuts and history preserve the empty home state', async 
   await expect(page.getByRole('listbox')).toHaveCount(0)
 })
 
+test('home lists recent lookups, which can be cleared', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Gõ một từ tiếng Anh để bắt đầu' })).toBeVisible()
+  await page.goto('/?q=excellent')
+  await expect(page).toHaveTitle('excellent · Lexi')
+  await page.goto('/?q=example')
+  await expect(page.getByRole('heading', { name: 'example', exact: true })).toBeVisible()
+  await page.goto('/')
+  await expect(page).toHaveTitle('Lexi · Từ điển Anh–Việt, Nhật–Việt')
+  const recent = page.getByRole('region', { name: 'Tra gần đây' })
+  await expect(recent.getByRole('button').filter({ hasNotText: 'Xoá' })).toHaveText(['example', 'excellent'])
+  await recent.getByRole('button', { name: 'excellent' }).click()
+  await expect(page.getByRole('heading', { name: 'excellent', exact: true })).toBeVisible()
+  await page.goBack()
+  await page.getByRole('button', { name: 'Xoá lịch sử' }).click()
+  await expect(page.getByRole('heading', { name: 'Gõ một từ tiếng Anh để bắt đầu' })).toBeVisible()
+})
+
+test('unknown words offer close spellings', async ({ page }) => {
+  await page.goto('/?q=exampel')
+  await expect(page.getByText('Có phải bạn muốn tìm:')).toBeVisible()
+  await page.getByRole('button', { name: 'example', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'example', exact: true })).toBeVisible()
+})
+
+test('Tab leaves the search box instead of walking the suggestions', async ({ page }) => {
+  await page.goto('/')
+  const input = page.getByRole('combobox')
+  await input.fill('ex')
+  await expect(page.getByRole('option')).toHaveCount(2)
+  await input.press('Tab')
+  await expect(page.getByRole('listbox')).toHaveCount(0)
+  await expect(page.getByRole('option')).toHaveCount(0)
+})
+
+test('long sense lists start collapsed', async ({ page }) => {
+  const senses = Array.from({ length: 9 }, (_, i) => ({ definition: `Nghĩa ${i + 1}`, partOfSpeech: 'noun' }))
+  await page.route('**/dictionary/data/test/e.json', route => route.fulfill({
+    json: { example: { headword: 'example', vi: senses, en: [] } },
+  }))
+  await page.goto('/?q=example')
+  await expect(page.getByText('Nghĩa 4', { exact: true })).toBeVisible()
+  await expect(page.getByText('Nghĩa 5', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Xem thêm 5 nghĩa' }).click()
+  await expect(page.getByText('Nghĩa 9', { exact: true })).toBeVisible()
+})
+
 test('deep links still load words and unknown words still show not found', async ({ page }) => {
   await page.goto('/?q=example')
   await expect(page.getByRole('combobox')).toHaveValue('example')

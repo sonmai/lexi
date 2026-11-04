@@ -1,12 +1,17 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
-import { Command, Search, X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import type { Mode } from '../hooks/useRoute'
 
+const isApple = /Mac|iPhone|iPad/.test(navigator.platform)
+export const shortcutLabel = isApple ? '⌘ K' : 'Ctrl K'
+
 export function SearchBox({
-  mode, query, onQueryChange, suggestions, emptyMessage, onChoose, inputRef,
+  mode, query, lookedUp, onQueryChange, suggestions, emptyMessage, onChoose, inputRef,
 }: {
   mode: Mode
   query: string
+  /** The word whose result is showing; suggestions stay closed while the query still equals it. */
+  lookedUp: string
   onQueryChange: (value: string) => void
   suggestions: string[]
   /** Shown in the list when there are no suggestions for a non-empty query. */
@@ -18,7 +23,7 @@ export function SearchBox({
   const [showSuggestions, setShowSuggestions] = useState(false)
   const root = useRef<HTMLFormElement>(null)
   const suggestionId = useId()
-  const suggestionVisible = showSuggestions && query.trim().length > 0
+  const suggestionVisible = showSuggestions && query.trim().length > 0 && query !== lookedUp
 
   useEffect(() => {
     const keyHandler = (event: KeyboardEvent) => {
@@ -97,6 +102,8 @@ export function SearchBox({
             } else if (event.key === 'ArrowUp' && suggestions.length) {
               event.preventDefault()
               setActiveIndex((previous) => (previous + suggestions.length - 1) % suggestions.length)
+            } else if (event.key === 'Tab') {
+              setShowSuggestions(false)
             }
           }}
         />
@@ -110,7 +117,7 @@ export function SearchBox({
             <X size={18} strokeWidth={1.9} />
           </button>
         )}
-        <span className="keyboard-hint" aria-hidden="true"><Command size={13} /> K</span>
+        <span className="keyboard-hint" aria-hidden="true">{shortcutLabel}</span>
         <button type="submit" className="lookup-submit" aria-label="Tra từ">
           <span>Tra</span>
           <Search size={19} aria-hidden="true" />
@@ -124,12 +131,13 @@ export function SearchBox({
               id={suggestionId + '-' + index}
               type="button"
               role="option"
+              tabIndex={-1}
               aria-selected={index === activeIndex}
               className={'suggestion ' + (index === activeIndex ? 'suggestion-active' : '')}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => choose(word)}
             >
-              <span lang={mode === 'ja' ? 'ja' : undefined}>{word}</span>
+              <span lang={mode === 'ja' ? 'ja' : 'en'}>{word}</span>
               <span className="suggestion-arrow" aria-hidden="true">↗</span>
             </button>
           )) : (

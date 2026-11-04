@@ -62,4 +62,10 @@ export async function suggestWords(section: Section, input: string, limit = 8): 
   return (await send({ type: 'suggest', section, input, limit })).words ?? []
 }
 
+/** Closest known words to one that was not found. */
+export async function similarWords(section: Section, input: string, limit = 6): Promise<string[]> {
+  if (!input.trim() || !(await loadIndex(section))) return []
+  return (await send({ type: 'similar', section, input, limit })).words ?? []
+}
+
 onActiveDataChange((section) => indexes.delete(section))

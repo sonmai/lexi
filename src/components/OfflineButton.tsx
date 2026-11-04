@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { ArrowDownToLine, Check, RefreshCw } from 'lucide-react'
 import type { OfflineStatus, Section } from '../dictionary-service'
 import type { OfflineDownload } from '../hooks/useOfflineDictionary'
@@ -32,10 +33,13 @@ export function OfflineButton({
     description = 'Tải phiên bản mới của từ điển ' + label + ' để sử dụng offline'
   }
   const Icon = state === 'ready' ? Check : state === 'update' ? RefreshCw : ArrowDownToLine
+  const busy = download?.section === section
+  const progress = busy && download.total ? download.saved / download.total : 0
 
   return (
     <button
-      className="offline-action"
+      className={'offline-action' + (busy ? ' offline-action-busy' : '')}
+      style={busy ? { '--progress': progress } as CSSProperties : undefined}
       type="button"
       onClick={() => onDownload(section)}
       disabled={Boolean(download) || state === 'ready' || state === 'unavailable'}

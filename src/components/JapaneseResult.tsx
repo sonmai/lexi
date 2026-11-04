@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Volume2 } from 'lucide-react'
 import type { JapaneseEntry } from '../data/types'
 import type { JapaneseLookup } from '../dictionary-service'
 import { isKanji, japanesePartOfSpeech } from '../utils/japanese'
 
 const COLLAPSED_JAPANESE_ENTRIES = 8
+
+const entryId = (entry: JapaneseEntry) => 'ja-entry-' + entry.id
 
 /**
  * KANJIDIC2 "vietnam" readings are not ordered by frequency (本: Bổn, Bản) and mix in
@@ -24,27 +27,29 @@ function hanViet(form: string, kanji: Record<string, string[]>): { text: string;
 }
 
 function JapaneseEntryView({
-  entry, kanji, speak, canSpeak,
+  entry, kanji, speak, canSpeak, speakingText,
 }: {
   entry: JapaneseEntry
   kanji: Record<string, string[]>
   speak: (text: string) => void
   canSpeak: boolean
+  speakingText?: string
 }) {
   const headword = entry.forms[0] ?? entry.readings[0] ?? ''
+  const spoken = entry.readings[0] ?? headword
   const reading = entry.forms.length ? entry.readings.join('、') : entry.readings.slice(1).join('、')
   const sinoVietnamese = hanViet(headword, kanji)
   const otherForms = entry.forms.slice(1)
   const partsOfSpeech = [...new Set(entry.pos.map(japanesePartOfSpeech))]
   return (
-    <section className="japanese-entry" aria-label={headword}>
+    <section className="japanese-entry" id={entryId(entry)} aria-label={headword}>
       <div className="entry-heading">
         <h2 lang="ja">{headword}</h2>
         {reading && <span className="japanese-reading" lang="ja">{reading}</span>}
         <button
           type="button"
-          className="pronunciation-play"
-          onClick={() => speak(entry.readings[0] ?? headword)}
+          className={'pronunciation-play' + (speakingText === spoken ? ' pronunciation-play-speaking' : '')}
+          onClick={() => speak(spoken)}
           aria-label={`Phát âm ${headword} – tiếng Nhật`}
           title="Nghe phát âm tiếng Nhật"
           disabled={!canSpeak}
@@ -121,24 +126,41 @@ function JapaneseEntryView({
 }
 
 export function JapaneseResult({
-  lookup, kanji, speak, canSpeak,
+  lookup, kanji, speak, canSpeak, speakingText,
 }: {
   lookup: JapaneseLookup
   kanji: Record<string, string[]>
   speak: (text: string) => void
   canSpeak: boolean
+  /** The Japanese text whose pronunciation is playing. */
+  speakingText?: string
 }) {
   const [expanded, setExpanded] = useState(false)
   const visible = expanded ? lookup.entries : lookup.entries.slice(0, COLLAPSED_JAPANESE_ENTRIES)
+
+  function jumpTo(entry: JapaneseEntry) {
+    if (!visible.includes(entry)) flushSync(() => setExpanded(true))
+    const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches
+    document.getElementById(entryId(entry))?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' })
+  }
+
   return (
     <article className="dictionary-result japanese-result">
       {lookup.entries.length > 1 && (
-        <p className="japanese-summary">
-          {lookup.entries.length} mục cho “<span lang="ja">{lookup.headword}</span>”
-        </p>
+        <nav className="japanese-summary" aria-label={`${lookup.entries.length} mục cho ${lookup.headword}`}>
+          <span>{lookup.entries.length} mục:</span>
+          <div className="word-chips" lang="ja">
+            {lookup.entries.map((entry) => (
+              <button type="button" key={entry.id} onClick={() => jumpTo(entry)}>
+                {entry.forms[0] ?? entry.readings[0]}
+              </button>
+            ))}
+          </div>
+        </nav>
       )}
       {visible.map((entry) => (
-        <JapaneseEntryView key={entry.id} entry={entry} kanji={kanji} speak={speak} canSpeak={canSpeak} />
+        <JapaneseEntryView key={entry.id} entry={entry} kanji={kanji} speak={speak} canSpeak={canSpeak}
+          speakingText={speakingText} />
       ))}
       {!expanded && lookup.entries.length > visible.length && (
         <button type="button" className="offline-action japanese-more" onClick={() => setExpanded(true)}>
