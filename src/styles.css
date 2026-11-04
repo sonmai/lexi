@@ -222,12 +222,7 @@ a { color: inherit; text-decoration: none; }
 .suggestion-active .suggestion-arrow, .suggestion:hover .suggestion-arrow { color: var(--text-secondary); }
 .suggestion-message { margin: 0; padding: 14px 16px; color: var(--text-secondary); font-size: 14px; }
 
-.utility-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px; min-height: 46px; margin: 0 0 12px;
-}
-.word-count { color: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-.utility-start { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; min-width: 0; }
+.utility-row { display: flex; align-items: center; min-height: 46px; margin: 0 0 12px; }
 .mode-switch {
   position: relative; isolation: isolate;
   display: inline-grid; grid-template-columns: 1fr 1fr; padding: 4px; gap: 2px;
@@ -245,8 +240,6 @@ a { color: inherit; text-decoration: none; }
 }
 .mode-switch:has(.mode-option:last-child.mode-option-active)::before { transform: translateX(calc(100% + 2px)); }
 .mode-option-active .flag { animation: pop-in 360ms var(--ease-spring); }
-/* Remounted per dictionary, so its details slide in on every switch. */
-.word-count { animation: slide-in 320ms var(--ease-out) both; }
 .mode-option {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 38px; padding: 0 16px; border: 0; border-radius: 999px;
@@ -514,19 +507,20 @@ a { color: inherit; text-decoration: none; }
 .result-message p { margin: 0; font-size: 14px; line-height: 1.6; }
 .result-message .word-chips { justify-content: center; max-width: 560px; margin-top: 4px; }
 
-.home { padding: 28px 4px 0; animation: fade-in 360ms var(--ease-out) both; }
-.home-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+/* Before the first lookup the header becomes a centred search page; a lookup collapses it back. */
+.is-home .site-header { position: static; }
+.is-home .site-header::after { display: none; }
+.is-home .header-inner {
+  grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 22px;
+  max-width: 640px; padding-top: max(56px, 18vh); padding-bottom: 0;
+}
+.is-home .wordmark { font-size: 56px; letter-spacing: -2px; }
+.is-home .search-field { height: 60px; }
+.is-home .main-content { max-width: 640px; }
+.home { padding: 36px 4px 0; text-align: center; animation: fade-in 360ms var(--ease-out) both; }
+.home-heading { display: flex; align-items: baseline; justify-content: center; gap: 16px; margin-bottom: 14px; }
 .home-heading h2 { margin: 0; color: var(--text-secondary); font-size: 13px; font-weight: 650; }
-.home-title {
-  margin: 36px 0 10px; font-family: var(--font-display);
-  font-size: clamp(22px, 3vw, 28px); font-weight: 700; letter-spacing: -.4px; color: var(--text-primary);
-}
-.home-hint { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
-kbd {
-  padding: 2px 7px; border-radius: 6px;
-  background: var(--surface-soft); box-shadow: inset 0 -1px 0 var(--edge);
-  color: var(--text-secondary); font: inherit; font-size: 12px; white-space: nowrap;
-}
+.home .word-chips { justify-content: center; }
 .text-action {
   padding: 6px 10px; margin: -6px -10px; border: 0; border-radius: 999px;
   background: transparent; color: var(--text-muted); font-size: 12px;
@@ -583,10 +577,6 @@ kbd {
   to { opacity: 1; transform: none; }
 }
 @keyframes fade-in { from { opacity: 0; } }
-@keyframes slide-in {
-  from { opacity: 0; transform: translateX(-8px); }
-  to { opacity: 1; transform: none; }
-}
 @keyframes drop-in {
   from { opacity: 0; transform: translateY(-6px) scale(.98); }
   to { opacity: 1; transform: none; }
@@ -627,9 +617,14 @@ kbd {
   .lookup-submit span { display: none; }
   .lookup-submit svg { display: block; }
   .search-field > svg { display: none; }
-  .utility-row { gap: 8px; flex-wrap: wrap; }
-  .utility-start { gap: 8px 12px; }
-  .mode-option { padding: 0 12px; gap: 7px; }
+  /* Clears the header's 18px fade so the switch below it is not dimmed. */
+  .main-content { padding-top: 20px; }
+  .mode-switch { display: grid; width: 100%; }
+  .mode-option { min-height: 42px; padding: 0 12px; gap: 7px; }
+  .is-home .header-inner { padding-top: max(40px, 12vh); gap: 18px; }
+  .is-home .wordmark { font-size: 44px; }
+  .is-home .search-field { height: 54px; }
+  .is-home .main-content { padding-top: 0; }
   .dictionary-result { padding-top: 14px; }
   .entry-heading { padding: 8px 2px 22px; column-gap: 14px; row-gap: 5px; }
   .entry-heading h2 { font-size: 40px; letter-spacing: -1.2px; }

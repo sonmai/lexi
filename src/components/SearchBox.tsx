@@ -4,7 +4,7 @@ import { useCoarsePointer } from '../hooks/useCoarsePointer'
 import type { Mode } from '../hooks/useRoute'
 
 const isApple = /Mac|iPhone|iPad/.test(navigator.platform)
-export const shortcutLabel = isApple ? '⌘ K' : 'Ctrl K'
+const shortcutLabel = isApple ? '⌘ K' : 'Ctrl K'
 
 export function SearchBox({
   mode, query, lookedUp, onQueryChange, suggestions, emptyMessage, onChoose, inputRef,

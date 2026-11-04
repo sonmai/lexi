@@ -47,7 +47,6 @@ test.beforeEach(async ({ page }) => {
 test('romaji input finds Japanese words with Vietnamese meanings and Hán Việt', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Nhật–Việt', exact: true }).click()
-  await expect(page.getByText('3 mục từ', { exact: true })).toBeVisible()
   const input = page.getByRole('combobox')
   await input.fill('tabe')
   await expect(page.getByRole('option')).toHaveText(['たべる↗'])
