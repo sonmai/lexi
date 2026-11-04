@@ -8,7 +8,7 @@ import { JapanFlag, UnitedKingdomFlag } from './flags'
 import { useDictionaryIndex, useKanjiReadings, useSuggestions } from './hooks/useDictionaryIndex'
 import { useLookup } from './hooks/useLookup'
 import { useOfflineDictionary } from './hooks/useOfflineDictionary'
-import { useRoute, type Mode } from './hooks/useRoute'
+import { readRoute, useRoute, type Mode } from './hooks/useRoute'
 import { useSpeech } from './hooks/useSpeech'
 import { containsJapanese, normalizeJapanese } from './utils/japanese'
 
@@ -29,7 +29,11 @@ export default function App() {
   const offline = useOfflineDictionary()
   const { canSpeak, speak } = useSpeech()
 
-  useEffect(() => setQuery(route.word), [route.word])
+  useEffect(() => {
+    const sync = () => setQuery(readRoute().word)
+    window.addEventListener('popstate', sync)
+    return () => window.removeEventListener('popstate', sync)
+  }, [])
 
   const nearbyWords = mode === 'ja'
     ? nearby.words.filter((word) => normalizeJapanese(word) !== normalizeJapanese(selectedWord)).slice(0, 8)
@@ -46,9 +50,12 @@ export default function App() {
     navigate({ word: term, mode }, true)
   }
 
-  function switchMode(nextMode: Mode) {
+  /** Clears the current lookup; `typed` keeps text that triggered the switch, such as kana typed in English mode. */
+  function switchMode(nextMode: Mode, typed = '') {
     if (nextMode === mode) return
-    navigate({ word: selectedWord, mode: nextMode }, false)
+    setQuery(typed)
+    // Pushing lets Back restore the cleared lookup.
+    navigate({ word: '', mode: nextMode }, Boolean(selectedWord))
     searchInput.current?.focus()
   }
 
@@ -63,7 +70,7 @@ export default function App() {
             query={query}
             onQueryChange={(value) => {
               setQuery(value)
-              if (mode === 'en' && containsJapanese(value)) switchMode('ja')
+              if (mode === 'en' && containsJapanese(value)) switchMode('ja', value)
             }}
             suggestions={suggestions.words}
             emptyMessage={emptyMessage}

@@ -84,12 +84,32 @@ test('typing kana switches to Japanese and shows every homograph', async ({ page
   await expect(page.getByText('Đôi đũa', { exact: true })).toBeVisible()
 })
 
-test('Japanese deep links and the English dictionary stay independent', async ({ page }) => {
+test('switching dictionaries clears the lookup, and Back restores it', async ({ page }) => {
   await page.goto('/?q=食べる&lang=ja')
   await expect(page.getByRole('heading', { name: '食べる', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Anh–Việt', exact: true }).click()
-  await expect(page).toHaveURL(/\?q=%E9%A3%9F%E3%81%B9%E3%82%8B$/)
-  await expect(page.getByRole('heading', { name: 'Không tìm thấy từ', exact: true })).toBeVisible()
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole('combobox')).toHaveValue('')
+  await expect(page.locator('.result-region')).toBeEmpty()
+  await expect(page.getByRole('navigation', { name: 'Các từ có cùng tiền tố' })).toHaveCount(0)
+  await page.goBack()
+  await expect(page.getByRole('combobox')).toHaveValue('食べる')
+  await expect(page.getByRole('heading', { name: '食べる', exact: true })).toBeVisible()
+})
+
+test('typing kana in English mode keeps the typed text', async ({ page }) => {
+  await page.goto('/?q=example')
+  await expect(page.getByRole('heading', { name: 'example', exact: true })).toBeVisible()
+  await page.getByRole('combobox').fill('はし')
+  await expect(page.getByRole('button', { name: 'Nhật–Việt', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('combobox')).toHaveValue('はし')
+  await expect(page.locator('.result-region')).toBeEmpty()
+})
+
+test('Japanese and English lookups stay independent', async ({ page }) => {
+  await page.goto('/?q=食べる&lang=ja')
+  await expect(page.getByRole('heading', { name: '食べる', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Anh–Việt', exact: true }).click()
   await page.getByRole('combobox').fill('example')
   await page.getByRole('combobox').press('Enter')
   await expect(page.getByRole('heading', { name: 'example', exact: true })).toBeVisible()

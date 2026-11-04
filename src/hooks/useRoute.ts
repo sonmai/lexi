@@ -8,7 +8,7 @@ export interface Route {
   mode: Mode
 }
 
-function readRoute(): Route {
+export function readRoute(): Route {
   const params = new URLSearchParams(window.location.search)
   const word = params.get('q')?.trim() || ''
   return { word, mode: params.get('lang') === 'ja' || containsJapanese(word) ? 'ja' : 'en' }
