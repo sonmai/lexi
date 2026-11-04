@@ -8,6 +8,7 @@ import {
   type JapaneseLookup,
 } from './dictionary-service'
 import type { DictionaryEntry, JapaneseEntry, Sense } from './data/types'
+import { JapanFlag, UnitedKingdomFlag } from './flags'
 import { groupSensesByPartOfSpeech } from './utils/partOfSpeech'
 import {
   containsJapanese, isKanji, japanesePartOfSpeech, normalizeJapanese,
@@ -602,7 +603,7 @@ export default function App() {
         <div className="utility-row">
           <div className="utility-start">
             <div className="mode-switch" role="group" aria-label="Chọn từ điển">
-              {([['en', 'Anh–Việt'], ['ja', 'Nhật–Việt']] as const).map(([value, label]) => (
+              {([['en', 'Anh–Việt', UnitedKingdomFlag], ['ja', 'Nhật–Việt', JapanFlag]] as const).map(([value, label, Flag]) => (
                 <button
                   key={value}
                   type="button"
@@ -610,6 +611,7 @@ export default function App() {
                   aria-pressed={mode === value}
                   onClick={() => switchMode(value)}
                 >
+                  <Flag />
                   {label}
                 </button>
               ))}
