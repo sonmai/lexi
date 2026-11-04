@@ -12,6 +12,11 @@ import { useSpeech } from './hooks/useSpeech'
 import { containsJapanese, normalizeJapanese } from './utils/japanese'
 
 const DEFAULT_TITLE = document.title
+// English mode switches to Japanese when kana or kanji is typed, so it shows one Japanese example too.
+const EXAMPLES: Record<Mode, readonly string[]> = {
+  en: ['serendipity', 'resilient', '食べる', 'ephemeral'],
+  ja: ['食べる', 'たべる', 'taberu', '勉強'],
+}
 
 export default function App() {
   const { route, navigation } = useRoute()
@@ -96,6 +101,7 @@ export default function App() {
             mode={mode}
             query={query}
             busy={Boolean(selectedWord) && loading}
+            examples={home ? EXAMPLES[mode] : undefined}
             onQueryChange={(value) => {
               setDraft({ text: value, navigation })
               setKeystrokes((count) => count + 1)

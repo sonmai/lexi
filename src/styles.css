@@ -110,6 +110,11 @@ a { color: inherit; text-decoration: none; }
 }
 .wordmark span { display: inline-block; color: var(--accent); }
 .wordmark-dot-hop { animation: dot-hop 360ms var(--ease-out); }
+.wordmark span { transform-origin: 50% 100%; }
+@media (hover: hover) and (pointer: fine) {
+  .wordmark:hover span { animation: dot-bounce 720ms var(--ease-out); }
+}
+.wordmark:focus-visible span { animation: dot-bounce 720ms var(--ease-out); }
 
 .main-content {
   flex: 1;
@@ -617,6 +622,13 @@ a { color: inherit; text-decoration: none; }
 }
 @keyframes fade-in-full { to { opacity: 1; } }
 @keyframes dot-hop { 40% { transform: translateY(-.22em) scale(1.15); } }
+/* Two bounces, squashing each time the dot lands. */
+@keyframes dot-bounce {
+  28% { transform: translateY(-.42em) scale(.92, 1.1); }
+  48% { transform: scale(1.22, .76); }
+  66% { transform: translateY(-.15em) scale(.96, 1.04); }
+  82% { transform: scale(1.08, .92); }
+}
 
 @media (max-width: 720px) {
   .header-inner { min-height: 68px; padding: 10px 22px; gap: 16px; }
