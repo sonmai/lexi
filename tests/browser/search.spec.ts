@@ -52,6 +52,8 @@ test('autocomplete, shortcuts and history preserve the empty home state', async 
   await page.keyboard.press('Meta+k')
   await expect(input).toBeFocused()
   await input.fill('ex')
+  // The previous query can still be showing one stale suggestion when ArrowUp arrives.
+  await expect(page.getByRole('option')).toHaveCount(2)
   await input.press('ArrowUp')
   await expect(page.getByRole('option', { name: 'excellent' })).toHaveAttribute('aria-selected', 'true')
   await input.press('Escape')
