@@ -163,7 +163,7 @@ export function JapaneseResult({
           speakingText={speakingText} />
       ))}
       {!expanded && lookup.entries.length > visible.length && (
-        <button type="button" className="offline-action japanese-more" onClick={() => setExpanded(true)}>
+        <button type="button" className="japanese-more" onClick={() => setExpanded(true)}>
           Xem thêm {lookup.entries.length - visible.length} mục
         </button>
       )}

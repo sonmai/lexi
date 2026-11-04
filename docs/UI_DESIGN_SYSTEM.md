@@ -40,7 +40,7 @@ Skill's generated palette was teal/orange and the type recommendation was Plus J
 - Maximum reading width is approximately 1024px.
 - Spacing uses a 4/8px rhythm, with roomier vertical separation between senses.
 - Examples are distinguished by a light left rule instead of tinted boxes.
-- Offline download remains discoverable but secondary to search.
+- Search stays primary. The dictionary switch and word count are the only controls beside it.
 
 ## Interaction and accessibility
 
