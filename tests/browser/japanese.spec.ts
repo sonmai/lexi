@@ -46,7 +46,7 @@ test.beforeEach(async ({ page }) => {
 
 test('romaji input finds Japanese words with Vietnamese meanings and Hán Việt', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Nhật–Việt' }).click()
+  await page.getByRole('button', { name: 'Nhật–Việt', exact: true }).click()
   await expect(page.getByText('3 mục từ', { exact: true })).toBeVisible()
   const input = page.getByRole('combobox')
   await input.fill('tabe')
@@ -75,7 +75,7 @@ test('typing kana switches to Japanese and shows every homograph', async ({ page
   await page.goto('/')
   const input = page.getByRole('combobox')
   await input.fill('はし')
-  await expect(page.getByRole('button', { name: 'Nhật–Việt' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Nhật–Việt', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await input.press('Enter')
   await expect(page.getByText('2 mục cho “はし”')).toBeVisible()
   await expect(page.getByRole('heading', { name: '橋', exact: true })).toBeVisible()
@@ -87,7 +87,7 @@ test('typing kana switches to Japanese and shows every homograph', async ({ page
 test('Japanese deep links and the English dictionary stay independent', async ({ page }) => {
   await page.goto('/?q=食べる&lang=ja')
   await expect(page.getByRole('heading', { name: '食べる', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Anh–Việt' }).click()
+  await page.getByRole('button', { name: 'Anh–Việt', exact: true }).click()
   await expect(page).toHaveURL(/\?q=%E9%A3%9F%E3%81%B9%E3%82%8B$/)
   await expect(page.getByRole('heading', { name: 'Không tìm thấy từ', exact: true })).toBeVisible()
   await page.getByRole('combobox').fill('example')

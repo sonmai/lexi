@@ -29,7 +29,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_dictionary import TARGET, download, save_json  # noqa: E402
+from build_dictionary import TARGET, add_sizes, download, save_json  # noqa: E402
 
 JMDICT_RELEASE = os.getenv("LEXI_JMDICT_RELEASE", "3.6.2+20261102210542")
 JMDICT_BASE = f"https://github.com/scriptin/jmdict-simplified/releases/download/{JMDICT_RELEASE}"
@@ -406,7 +406,7 @@ def main():
         "version": "demo", "count": 0, "index": None, "chunks": [], "chunkStrategy": "prefix2", "sources": []
     }
     manifest["japanese"] = section
-    save_json(manifest_path, manifest)
+    save_json(manifest_path, add_sizes(manifest))
 
 
 if __name__ == "__main__":

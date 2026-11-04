@@ -1,10 +1,20 @@
-import { dictionary as demoEntries, byHeadword, normalise } from './data/dictionary'
 import type { DictionaryEntry, JapaneseEntry } from './data/types'
-import {
-  japaneseLookupKeys, japaneseSearchKeys, japaneseShard, normalizeJapanese,
-} from './utils/japanese'
+import { englishChunk, normaliseEnglish, type EnglishChunkStrategy } from './utils/english'
+import { japaneseLookupKeys, japaneseShard } from './utils/japanese'
 
-export interface JapaneseManifest {
+export type Section = 'en' | 'ja'
+
+export interface EnglishSection {
+  version: string
+  count: number
+  index: string
+  chunks: string[]
+  chunkStrategy?: EnglishChunkStrategy
+  /** Total size of the index and chunks; absent in data built before sizes were recorded. */
+  bytes?: number
+}
+
+export interface JapaneseSection {
   version: string
   count: number
   index: string
@@ -12,6 +22,7 @@ export interface JapaneseManifest {
   chunks: string[]
   chunkStrategy: 'fnv1a'
   shardCount: number
+  bytes?: number
 }
 
 export interface DictionaryManifest {
@@ -20,199 +31,287 @@ export interface DictionaryManifest {
   /** Null when only the Japanese section has been built locally. */
   index: string | null
   chunks: string[]
-  chunkStrategy?: 'prefix2' | 'first-letter'
-  japanese?: JapaneseManifest
+  chunkStrategy?: EnglishChunkStrategy
+  bytes?: number
+  japanese?: JapaneseSection
 }
+
+interface Sections {
+  en?: EnglishSection
+  ja?: JapaneseSection
+}
+
+type SectionManifest<S extends Section> = NonNullable<Sections[S]>
 
 export interface JapaneseLookup {
   headword: string
   entries: JapaneseEntry[]
 }
 
-const offlineCacheName = 'lexi-dictionary-v2'
-let manifestPromise: Promise<DictionaryManifest | null> | null = null
-let wordsPromise: Promise<string[]> | null = null
-let japaneseWordsPromise: Promise<string[]> | null = null
-let kanjiPromise: Promise<Record<string, string[]>> | null = null
-const shards = new Map<string, Promise<Record<string, unknown>>>()
+/** Shared with the service worker's runtime caching in vite.config.ts. */
+const DICTIONARY_CACHE = 'lexi-dictionary-v2'
+/**
+ * Sections whose every file is in DICTIONARY_CACHE. Lookups keep using a pinned
+ * version after a newer one is deployed, until the user downloads the update.
+ */
+const PINNED_KEY = 'lexi-offline-v1'
+const DOWNLOAD_CONCURRENCY = 4
 
-function loadShard<T>(cacheKey: string, url: string): Promise<Record<string, T>> {
-  if (!shards.has(cacheKey)) {
-    shards.set(cacheKey, requestJson<Record<string, T>>(url).catch((error) => {
-      shards.delete(cacheKey)
-      throw error
-    }))
+let manifestPromise: Promise<DictionaryManifest | null> | null = null
+const shards = new Map<string, Promise<Record<string, unknown>>>()
+const listeners = new Set<(section: Section) => void>()
+
+function isJson(response: Response): boolean {
+  return (response.headers.get('content-type') || '').includes('json')
+}
+
+/** Reads dictionary files from the offline cache first, so pinned data works without the service worker. */
+async function fetchData(url: string): Promise<Response> {
+  if ('caches' in window) {
+    const cached = await (await caches.open(DICTIONARY_CACHE)).match(url)
+    if (cached) return cached
   }
-  return shards.get(cacheKey)! as Promise<Record<string, T>>
+  const response = await fetch(url)
+  if (!response.ok) throw new Error('Could not fetch ' + url + ': HTTP ' + response.status)
+  if (!isJson(response)) throw new Error('Expected JSON from ' + url)
+  return response
 }
 
 async function requestJson<T>(url: string): Promise<T> {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error('Could not fetch ' + url + ': HTTP ' + response.status)
-  if (!(response.headers.get('content-type') || '').includes('json')) {
-    throw new Error('Expected JSON from ' + url)
-  }
-  return response.json() as Promise<T>
+  return (await fetchData(url)).json() as Promise<T>
 }
 
+function loadShard<T>(url: string): Promise<Record<string, T>> {
+  if (!shards.has(url)) {
+    shards.set(url, requestJson<Record<string, unknown>>(url).catch((error) => {
+      shards.delete(url)
+      throw error
+    }))
+  }
+  return shards.get(url)! as Promise<Record<string, T>>
+}
+
+/**
+ * Resolves to null when this build has no generated data, so the demo entries apply.
+ * Rejects when the manifest cannot be reached, e.g. offline before it was ever cached.
+ */
 export function getManifest(): Promise<DictionaryManifest | null> {
   if (!manifestPromise) {
-    manifestPromise = requestJson<DictionaryManifest>('/dictionary/manifest.json')
-      .then((value) => {
-        if (!value || !value.version || !Array.isArray(value.chunks)) {
-          throw new Error('Invalid dictionary manifest')
-        }
-        return value
+    manifestPromise = (async () => {
+      const response = await fetch('/dictionary/manifest.json').catch(() => {
+        throw new Error('Không có kết nối mạng và từ điển chưa được tải về để dùng offline.')
       })
-      .catch((error) => {
-        console.warn('Using the bundled demo dictionary:', error)
-        return null
-      })
+      if (response.status === 404 || (response.ok && !isJson(response))) return null
+      if (!response.ok) throw new Error('Could not fetch the dictionary manifest: HTTP ' + response.status)
+      const value = await response.json() as DictionaryManifest
+      if (!value || !value.version || !Array.isArray(value.chunks)) throw new Error('Invalid dictionary manifest')
+      return value
+    })().catch((error) => {
+      manifestPromise = null
+      throw error
+    })
   }
   return manifestPromise
 }
 
-export async function loadWords(): Promise<string[]> {
-  if (!wordsPromise) {
-    wordsPromise = (async () => {
-      const manifest = await getManifest()
-      if (!manifest?.index) return demoEntries.map((entry) => entry.headword)
-      const result = await requestJson<string[]>(manifest.index)
-      if (!Array.isArray(result) || !result.length) throw new Error('Dictionary index is empty')
-      return result
-    })().catch((error) => {
-      wordsPromise = null
-      throw error
-    })
-  }
-  return wordsPromise
+async function latestSections(): Promise<Sections> {
+  const manifest = await getManifest()
+  if (!manifest) return {}
+  const { japanese, index, version, count, chunks, chunkStrategy, bytes } = manifest
+  return { en: index ? { version, count, index, chunks, chunkStrategy, bytes } : undefined, ja: japanese }
 }
 
-export function suggest(words: string[], input: string, limit = 8): string[] {
-  const prefix = normalise(input)
-  if (!prefix) return []
-  let lo = 0
-  let hi = words.length
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1
-    if (words[mid] < prefix) lo = mid + 1
-    else hi = mid
+function readPinned(): Sections {
+  try {
+    return JSON.parse(localStorage.getItem(PINNED_KEY) || '{}') as Sections
+  } catch {
+    return {}
   }
-  const result: string[] = []
-  while (lo < words.length && result.length < limit && words[lo].startsWith(prefix)) {
-    result.push(words[lo++])
+}
+
+function setPinned<S extends Section>(section: S, manifest: SectionManifest<S> | undefined) {
+  const pinned = readPinned()
+  const previous = pinned[section]?.version
+  if (manifest) pinned[section] = manifest
+  else delete pinned[section]
+  localStorage.setItem(PINNED_KEY, JSON.stringify(pinned))
+  // A first pin is the deployed version already in use; only replacing or dropping one changes the data.
+  if (previous && previous !== manifest?.version) listeners.forEach((listener) => listener(section))
+}
+
+/** Called when lookups switch to another data version for a section. */
+export function onActiveDataChange(listener: (section: Section) => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+async function activeSection<S extends Section>(section: S): Promise<SectionManifest<S> | null> {
+  const pinned = readPinned()[section]
+  if (pinned) return pinned as SectionManifest<S>
+  return ((await latestSections())[section] ?? null) as SectionManifest<S> | null
+}
+
+/** Runs against the active data; if a pinned copy turns out to be evicted, unpins it and retries once. */
+async function withActive<S extends Section, T>(
+  section: S, run: (manifest: SectionManifest<S> | null) => Promise<T>,
+): Promise<T> {
+  const pinned = readPinned()[section]?.version
+  const manifest = await activeSection(section)
+  try {
+    return await run(manifest)
+  } catch (error) {
+    if (!pinned) throw error
+    // offlineStatus may have unpinned the same evicted copy meanwhile.
+    if (readPinned()[section]?.version === pinned) setPinned(section, undefined)
+    return run(await activeSection(section))
   }
-  return result
+}
+
+export interface IndexData {
+  buffer: ArrayBuffer
+  count: number
+  demo: boolean
+}
+
+/** The suggestion index as raw JSON, for parsing off the main thread; null when the section has no data. */
+export function readIndex(section: Section): Promise<IndexData | null> {
+  return withActive(section, async (manifest) => {
+    if (manifest) {
+      return { buffer: await (await fetchData(manifest.index)).arrayBuffer(), count: manifest.count, demo: false }
+    }
+    if (section === 'ja') return null
+    const { demoWords } = await import('./data/dictionary')
+    const buffer = new TextEncoder().encode(JSON.stringify(demoWords)).buffer as ArrayBuffer
+    return { buffer, count: demoWords.length, demo: true }
+  })
 }
 
 export async function lookupWord(word: string): Promise<DictionaryEntry | null> {
-  const key = normalise(word)
+  const key = normaliseEnglish(word)
   if (!key) return null
-  const manifest = await getManifest()
-  if (!manifest?.index) return byHeadword.get(key) ?? null
-  const first = /^[a-z]/.test(key) ? key[0] : 'other'
-  const chunk = manifest.chunkStrategy === 'prefix2'
-    ? (first === 'other' ? first : /^[a-z]/.test(key[1] || '') ? key.slice(0, 2) : first + '_')
-    : first
-  const url = '/dictionary/data/' + manifest.version + '/' + chunk + '.json'
-  if (!manifest.chunks.includes(url)) return null
-  return (await loadShard<DictionaryEntry>(manifest.version + ':' + chunk, url))[key] ?? null
-}
-
-/** Display forms sorted by their normalised key in UTF-16 order; empty when not built. */
-export async function loadJapaneseWords(): Promise<string[]> {
-  if (!japaneseWordsPromise) {
-    japaneseWordsPromise = (async () => {
-      const japanese = (await getManifest())?.japanese
-      return japanese ? requestJson<string[]>(japanese.index) : []
-    })().catch((error) => {
-      japaneseWordsPromise = null
-      throw error
-    })
-  }
-  return japaneseWordsPromise
+  return withActive('en', async (manifest) => {
+    if (!manifest) return (await import('./data/dictionary')).demoByHeadword.get(key) ?? null
+    const url = '/dictionary/data/' + manifest.version + '/' + englishChunk(key, manifest.chunkStrategy) + '.json'
+    if (!manifest.chunks.includes(url)) return null
+    return (await loadShard<DictionaryEntry>(url))[key] ?? null
+  })
 }
 
 export function loadKanjiReadings(): Promise<Record<string, string[]>> {
-  if (!kanjiPromise) {
-    kanjiPromise = (async () => {
-      const japanese = (await getManifest())?.japanese
-      return japanese ? requestJson<Record<string, string[]>>(japanese.kanji) : {}
-    })().catch((error) => {
-      kanjiPromise = null
-      throw error
-    })
-  }
-  return kanjiPromise
-}
-
-export function suggestJapanese(words: string[], input: string, limit = 8): string[] {
-  const result: string[] = []
-  for (const prefix of japaneseSearchKeys(input)) {
-    let lo = 0
-    let hi = words.length
-    while (lo < hi) {
-      const mid = (lo + hi) >>> 1
-      if (normalizeJapanese(words[mid]) < prefix) lo = mid + 1
-      else hi = mid
-    }
-    while (lo < words.length && result.length < limit && normalizeJapanese(words[lo]).startsWith(prefix)) {
-      if (!result.includes(words[lo])) result.push(words[lo])
-      lo += 1
-    }
-    if (result.length >= limit) break
-  }
-  return result
+  return withActive('ja', async (manifest) => manifest ? requestJson<Record<string, string[]>>(manifest.kanji) : {})
 }
 
 export async function lookupJapanese(word: string): Promise<JapaneseLookup | null> {
-  const japanese = (await getManifest())?.japanese
-  if (!japanese) return null
-  for (const key of japaneseLookupKeys(word)) {
-    const chunk = japaneseShard(key, japanese.shardCount)
-    const url = '/dictionary/data/ja-' + japanese.version + '/' + chunk + '.json'
-    if (!japanese.chunks.includes(url)) continue
-    const entries = (await loadShard<JapaneseEntry[]>('ja-' + japanese.version + ':' + chunk, url))[key]
-    if (entries?.length) return { headword: word.trim(), entries }
+  return withActive('ja', async (manifest) => {
+    if (!manifest) return null
+    for (const key of japaneseLookupKeys(word)) {
+      const url = '/dictionary/data/ja-' + manifest.version + '/' + japaneseShard(key, manifest.shardCount) + '.json'
+      if (!manifest.chunks.includes(url)) continue
+      const entries = (await loadShard<JapaneseEntry[]>(url))[key]
+      if (entries?.length) return { headword: word.trim(), entries }
+    }
+    return null
+  })
+}
+
+function sectionUrls(manifest: EnglishSection | JapaneseSection): string[] {
+  const urls = [manifest.index, ...manifest.chunks]
+  return 'kanji' in manifest ? [...urls, manifest.kanji] : urls
+}
+
+async function countCached(cache: Cache, urls: string[]): Promise<number> {
+  return (await Promise.all(urls.map((url) => cache.match(url)))).filter(Boolean).length
+}
+
+export interface OfflineStatus {
+  /** `update`: a complete older copy is in use and a newer version is deployed. */
+  state: 'unavailable' | 'none' | 'partial' | 'ready' | 'update'
+  /** Progress towards the version a download would fetch. */
+  saved: number
+  total: number
+  bytes?: number
+}
+
+export async function offlineStatus(section: Section): Promise<OfflineStatus> {
+  const unavailable: OfflineStatus = { state: 'unavailable', saved: 0, total: 0 }
+  if (!('caches' in window)) return unavailable
+  const cache = await caches.open(DICTIONARY_CACHE)
+  const latest = await latestSections().then((sections) => sections[section], () => undefined)
+  const pinned = readPinned()[section]
+  if (pinned) {
+    const urls = sectionUrls(pinned)
+    const saved = await countCached(cache, urls)
+    if (saved === urls.length) {
+      if (!latest || latest.version === pinned.version) {
+        return { state: 'ready', saved, total: urls.length, bytes: pinned.bytes }
+      }
+      const pending = sectionUrls(latest)
+      return { state: 'update', saved: await countCached(cache, pending), total: pending.length, bytes: latest.bytes }
+    }
+    setPinned(section, undefined)
   }
-  return null
+  if (!latest) return unavailable
+  const urls = sectionUrls(latest)
+  const saved = await countCached(cache, urls)
+  if (saved === urls.length) setPinned(section, latest)
+  return {
+    state: saved === urls.length ? 'ready' : saved ? 'partial' : 'none',
+    saved, total: urls.length, bytes: latest.bytes,
+  }
 }
 
-function offlineUrls(manifest: DictionaryManifest): string[] {
-  const urls = manifest.index ? [manifest.index, ...manifest.chunks] : []
-  if (manifest.japanese) urls.push(manifest.japanese.index, manifest.japanese.kanji, ...manifest.japanese.chunks)
-  return urls
+export interface DownloadResult {
+  /** False when the browser may still evict the data under storage pressure. */
+  persisted: boolean
 }
 
-export async function offlineProgress(): Promise<{ saved: number; total: number }> {
-  const manifest = await getManifest()
-  if (!manifest || !('caches' in window)) return { saved: 0, total: 0 }
-  const cache = await caches.open(offlineCacheName)
-  const urls = offlineUrls(manifest)
-  const responses = await Promise.all(urls.map((url) => cache.match(url)))
-  return { saved: responses.filter(Boolean).length, total: urls.length }
-}
+export async function downloadSection(
+  section: Section, onProgress: (saved: number, total: number) => void,
+): Promise<DownloadResult> {
+  if (!('caches' in window)) throw new Error('Trình duyệt này không hỗ trợ lưu dữ liệu offline.')
+  const latest = (await latestSections())[section]
+  if (!latest) throw new Error('Bản này chưa có dữ liệu để tải offline.')
+  const cache = await caches.open(DICTIONARY_CACHE)
+  const urls = sectionUrls(latest)
 
-export async function downloadForOffline(
-  onProgress: (saved: number, total: number) => void
-): Promise<void> {
-  const manifest = await getManifest()
-  if (!manifest) throw new Error('Full dictionary has not been imported yet.')
-  if (!('caches' in window)) throw new Error('Offline storage is not available in this browser.')
-  const cache = await caches.open(offlineCacheName)
-  const urls = offlineUrls(manifest)
+  const missingShare = 1 - (await countCached(cache, urls)) / urls.length
+  const estimate = await navigator.storage?.estimate?.().catch(() => undefined)
+  const needed = (latest.bytes ?? 0) * missingShare
+  if (estimate?.quota && needed > estimate.quota - (estimate.usage ?? 0)) {
+    throw new Error('Không đủ dung lượng: cần khoảng ' + Math.ceil(needed / 1e6) + ' MB trống.')
+  }
+  const persisted = await navigator.storage?.persist?.().catch(() => false) ?? false
+
   let saved = 0
-  for (let i = 0; i < urls.length; i += 3) {
-    await Promise.all(urls.slice(i, i + 3).map(async (url) => {
+  let next = 0
+  const worker = async () => {
+    while (next < urls.length) {
+      const url = urls[next++]
       if (!(await cache.match(url))) {
         const response = await fetch(url)
-        if (!response.ok || !(response.headers.get('content-type') || '').includes('json')) {
-          throw new Error('Unable to download ' + url)
-        }
-        await cache.put(url, response.clone())
+        if (!response.ok || !isJson(response)) throw new Error('Không tải được ' + url)
+        await cache.put(url, response)
       }
       saved += 1
       onProgress(saved, urls.length)
-    }))
+    }
   }
+  await Promise.all(Array.from({ length: DOWNLOAD_CONCURRENCY }, worker))
+  setPinned(section, latest)
+  await pruneOfflineCache()
+  return { persisted }
+}
+
+/** Deletes cached dictionary files that belong to neither a pinned nor the deployed version. */
+export async function pruneOfflineCache(): Promise<number> {
+  if (!('caches' in window)) return 0
+  const latest = await latestSections().catch(() => null)
+  // Offline, the deployed version is unknown, so nothing can safely be called stale.
+  if (!latest) return 0
+  const pinned = readPinned()
+  const keep = new Set([pinned.en, pinned.ja, latest.en, latest.ja].flatMap((manifest) => manifest ? sectionUrls(manifest) : []))
+  const cache = await caches.open(DICTIONARY_CACHE)
+  const stale = (await cache.keys()).filter((request) => !keep.has(new URL(request.url).pathname))
+  await Promise.all(stale.map((request) => cache.delete(request)))
+  return stale.length
 }

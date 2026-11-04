@@ -14,12 +14,11 @@ The default build uses **Simple English Wiktionary**, not the much larger full E
 ### Import command
 
 ```bash
-npm install
-npm run build
-python3 scripts/test_dictionary.py
+npm run data:build     # download upstream sources, build both dictionaries and check them
+npm run data:package   # archive public/dictionary and pin it in data.lock.json
 ```
 
-`prebuild` calls `scripts/build_dictionary.py`. All data downloads occur at build time; the API is not called at runtime. The original downloads are not committed. Data shards are exported to `public/dictionary/data/<version>/<prefix>.json`, accompanied by a sorted index and manifest. The first two letters of an English key determine its shard; `other` handles unusual initial symbols.
+The `Build dictionary data` workflow runs these weekly and publishes the archive as a GitHub Release; app builds (`prebuild` → `scripts/fetch_data.py`) only install the pinned archive. See [ARCHITECTURE.md](ARCHITECTURE.md#data-pipeline). All data downloads occur at build time; the API is not called at runtime. The original downloads are not committed. Data shards are exported to `public/dictionary/data/<version>/<prefix>.json`, accompanied by a sorted index and manifest. The first two letters of an English key determine its shard; `other` handles unusual initial symbols.
 
 The build version is content-addressed based on SHA-256 digests of four downloaded datasets. GitHub Actions validates total counts, bilingual coverage for common headwords, example totals, source attribution metadata, and shard integrity. The last successful dataset evaluation returned **215,761 headwords / 175,860 VI examples / 79,991 EN examples**. These are counts, *not* an accuracy audit.
 
@@ -47,7 +46,7 @@ Lookup keys are NFKC-normalised, lower-cased and katakana-folded to hiragana, so
 
 ### Offline
 
-The app and search index are cached separately from the data shards. The offline download includes the Japanese index, Hán Việt map and shards. Data chunks are partitioned into 2-character prefixes to avoid huge single downloads on iPhone. Users can optionally cache all shards in Cache Storage. Storage quotas, eviction, and caching differ between browsers, so an offline download is best-effort, not a promise of permanent storage. The Service Worker runtime cache and offline download code both use `lexi-dictionary-v2`.
+The app shell is precached separately from the data shards. The English and Japanese dictionaries are downloaded for offline use separately; the Japanese download includes its index, Hán Việt map and shards. Data chunks are partitioned into 2-character prefixes to avoid huge single downloads on iPhone. A complete download is pinned, so it keeps working after a new data version is deployed until the user updates it, and files of unused versions are deleted. Storage quotas, eviction, and caching differ between browsers, so an offline download is best-effort, not a promise of permanent storage. The Service Worker runtime cache and offline download code both use `lexi-dictionary-v2`.
 
 ### Responsible quality improvements
 

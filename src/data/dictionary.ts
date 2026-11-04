@@ -1,32 +1,16 @@
 import entries from './entries.json'
 import type { DictionaryEntry } from './types'
-
-export type { DictionaryEntry, Sense } from './types'
+import { normaliseEnglish } from '../utils/english'
 
 // The checked-in dataset is intentionally small and original: a UI prototype,
-// NOT an imported/licensed production dictionary.
-export const dictionary = (entries as DictionaryEntry[]).sort((a, b) =>
+// NOT an imported/licensed production dictionary. It is used only when a build
+// has no generated dictionary data (LEXI_SKIP_IMPORT=1 or a clean `npm run dev`).
+export const demoEntries = (entries as DictionaryEntry[]).sort((a, b) =>
   a.headword.localeCompare(b.headword, 'en')
 )
 
-export const byHeadword = new Map(
-  dictionary.map((entry) => [entry.headword.toLowerCase(), entry])
+export const demoByHeadword = new Map(
+  demoEntries.map((entry) => [normaliseEnglish(entry.headword), entry])
 )
 
-export function normalise(input: string): string {
-  return input.toLowerCase().normalize('NFKC').trim().replace(/\s+/g, ' ')
-}
-
-export function searchHeadwords(query: string, limit = 7): DictionaryEntry[] {
-  const term = normalise(query)
-  if (!term) return []
-  const startsWith = dictionary.filter((entry) =>
-    normalise(entry.headword).startsWith(term)
-  )
-  const contains = dictionary.filter(
-    (entry) =>
-      !normalise(entry.headword).startsWith(term) &&
-      normalise(entry.headword).includes(term)
-  )
-  return [...startsWith, ...contains].slice(0, limit)
-}
+export const demoWords = [...demoByHeadword.keys()].sort()
