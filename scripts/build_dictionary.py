@@ -54,7 +54,7 @@ def get_entry(data: dict, word: str) -> dict | None:
 def download(url: str, dest: Path) -> str:
     print(f"Downloading {url}", flush=True)
     digest = hashlib.sha256()
-    request = urllib.request.Request(url, headers={"User-Agent": "LexiDictionary/0.3 (nonprofit; https://github.com/sonmai/english-dictionary-pwa)"})
+    request = urllib.request.Request(url, headers={"User-Agent": "LexiDictionary/0.3 (nonprofit; https://github.com/sonmai/lexi)"})
     with urllib.request.urlopen(request, timeout=180) as response, dest.open("wb") as output:
         while chunk := response.read(1024 * 1024):
             output.write(chunk)
