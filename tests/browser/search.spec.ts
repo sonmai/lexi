@@ -117,6 +117,25 @@ test('a fine pointer shows the shortcut only on wide windows', async ({ page }) 
   await expect(page.locator('.keyboard-hint')).toBeHidden()
 })
 
+test('the border light runs on focus and loops only through a slow lookup', async ({ page }) => {
+  await page.goto('/')
+  const input = page.getByRole('combobox')
+  await expect(page.locator('.search-led')).toHaveCount(0)
+  await input.focus()
+  await expect(page.locator('.search-led-lap')).toHaveCount(1)
+  await input.fill('ex')
+  await expect(page.locator('.wordmark-dot-hop')).toHaveCount(1)
+  await page.route('**/dictionary/data/test/e.json', async route => {
+    await new Promise(resolve => setTimeout(resolve, 800))
+    await route.fallback()
+  })
+  await input.fill('example')
+  await input.press('Enter')
+  await expect(page.locator('.search-led-busy')).toHaveCount(1)
+  await expect(page.getByRole('heading', { name: 'example', exact: true })).toBeVisible()
+  await expect(page.locator('.search-led-busy')).toHaveCount(0)
+})
+
 test('unknown words offer close spellings', async ({ page }) => {
   await page.goto('/?q=exampel')
   await expect(page.getByText('Có phải bạn muốn tìm:')).toBeVisible()

@@ -19,6 +19,8 @@ export default function App() {
   // Typed text belongs to one navigation; any navigation, including Back, shows the route's word again.
   const [draft, setDraft] = useState<{ text: string; navigation: number } | null>(null)
   const query = draft?.navigation === navigation ? draft.text : route.word
+  // Remounts the wordmark's dot so it hops again on every keystroke.
+  const [keystrokes, setKeystrokes] = useState(0)
   const searchInput = useRef<HTMLInputElement>(null)
 
   const english = useDictionaryIndex('en', true)
@@ -87,12 +89,16 @@ export default function App() {
       <a className="skip-link" href="#dictionary-content">Bỏ qua điều hướng</a>
       <header className="site-header">
         <div className="header-inner">
-          <a className="wordmark" href="/" aria-label="Lexi — trang chủ">lexi<span>.</span></a>
+          <a className="wordmark" href="/" aria-label="Lexi — trang chủ">
+            lexi<span key={keystrokes} className={keystrokes ? 'wordmark-dot-hop' : undefined}>.</span>
+          </a>
           <SearchBox
             mode={mode}
             query={query}
+            busy={Boolean(selectedWord) && loading}
             onQueryChange={(value) => {
               setDraft({ text: value, navigation })
+              setKeystrokes((count) => count + 1)
               if (mode === 'en' && containsJapanese(value)) switchMode('ja', value)
             }}
             lookedUp={selectedWord}
