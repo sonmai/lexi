@@ -2,17 +2,20 @@ import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { Search, X } from 'lucide-react'
 import { useCoarsePointer } from '../hooks/useCoarsePointer'
 import type { Mode } from '../hooks/useRoute'
+import { SearchLed } from './SearchLed'
 
 const isApple = /Mac|iPhone|iPad/.test(navigator.platform)
 const shortcutLabel = isApple ? '⌘ K' : 'Ctrl K'
 
 export function SearchBox({
-  mode, query, lookedUp, onQueryChange, suggestions, emptyMessage, onChoose, inputRef,
+  mode, query, lookedUp, busy, onQueryChange, suggestions, emptyMessage, onChoose, inputRef,
 }: {
   mode: Mode
   query: string
   /** The word whose result is showing; suggestions stay closed while the query still equals it. */
   lookedUp: string
+  /** A lookup is in flight; a slow one keeps the border light running. */
+  busy: boolean
   onQueryChange: (value: string) => void
   suggestions: string[]
   /** Shown in the list when there are no suggestions for a non-empty query. */
@@ -22,7 +25,9 @@ export function SearchBox({
 }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [ledLap, setLedLap] = useState(0)
   const root = useRef<HTMLFormElement>(null)
+  const field = useRef<HTMLDivElement>(null)
   const suggestionId = useId()
   const coarsePointer = useCoarsePointer()
   const suggestionVisible = showSuggestions && query.trim().length > 0 && query !== lookedUp
@@ -57,6 +62,7 @@ export function SearchBox({
   function choose(word: string) {
     setShowSuggestions(false)
     setActiveIndex(0)
+    setLedLap((lap) => lap + 1)
     inputRef.current?.blur()
     onChoose(word)
   }
@@ -74,8 +80,9 @@ export function SearchBox({
       <label className="sr-only" htmlFor="lookup-word">
         {mode === 'ja' ? 'Nhập từ tiếng Nhật' : 'Nhập từ tiếng Anh'}
       </label>
-      <div className={'search-field ' + (showSuggestions ? 'search-field-active' : '')}>
-        <Search size={21} strokeWidth={1.9} aria-hidden="true" />
+      <div className={'search-field ' + (showSuggestions ? 'search-field-active' : '')} ref={field}>
+        <SearchLed field={field} lap={ledLap} busy={busy} />
+        <Search className="search-icon" size={21} strokeWidth={1.9} aria-hidden="true" />
         <input
           ref={inputRef}
           id="lookup-word"
@@ -91,7 +98,10 @@ export function SearchBox({
           aria-expanded={suggestionVisible}
           aria-controls={suggestionVisible ? suggestionId : undefined}
           aria-activedescendant={suggestionVisible && suggestions.length ? suggestionId + '-' + activeIndex : undefined}
-          onFocus={() => setShowSuggestions(true)}
+          onFocus={() => {
+            setShowSuggestions(true)
+            setLedLap((lap) => lap + 1)
+          }}
           onChange={(event) => {
             setActiveIndex(0)
             setShowSuggestions(true)
