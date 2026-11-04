@@ -10,6 +10,8 @@ export interface EnglishSection {
   index: string
   chunks: string[]
   chunkStrategy?: EnglishChunkStrategy
+  /** Total size of the index and chunks; recorded by the data build, unused at runtime. */
+  bytes?: number
 }
 
 export interface JapaneseSection {
@@ -20,6 +22,7 @@ export interface JapaneseSection {
   chunks: string[]
   chunkStrategy: 'fnv1a'
   shardCount: number
+  bytes?: number
 }
 
 export interface DictionaryManifest {
@@ -29,6 +32,7 @@ export interface DictionaryManifest {
   index: string | null
   chunks: string[]
   chunkStrategy?: EnglishChunkStrategy
+  bytes?: number
   japanese?: JapaneseSection
 }
 
@@ -121,8 +125,8 @@ export function getManifest(): Promise<DictionaryManifest | null> {
 async function latestSections(): Promise<Sections> {
   const manifest = await getManifest()
   if (!manifest) return {}
-  const { japanese, index, version, count, chunks, chunkStrategy } = manifest
-  return { en: index ? { version, count, index, chunks, chunkStrategy } : undefined, ja: japanese }
+  const { japanese, index, version, count, chunks, chunkStrategy, bytes } = manifest
+  return { en: index ? { version, count, index, chunks, chunkStrategy, bytes } : undefined, ja: japanese }
 }
 
 async function sectionOf<S extends Section>(section: S): Promise<SectionManifest<S> | null> {
