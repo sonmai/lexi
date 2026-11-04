@@ -22,7 +22,7 @@ test('empty URLs stay idle without a default lookup', async ({ page }) => {
   for (const url of ['/', '/?q=', '/?q=%20%20']) {
     await page.goto(url)
     await expect(page.getByRole('combobox')).toHaveValue('')
-    await expect(page.getByText('2 mục từ', { exact: true })).toBeVisible()
+    await expect(page.getByRole('banner').getByRole('group', { name: 'Chọn từ điển' })).toBeVisible()
     await expect(page.locator('.result-region')).toBeEmpty()
     await expect(page.locator('.result-region')).toHaveAttribute('aria-busy', 'false')
     await page.getByRole('button', { name: 'Tra từ', exact: true }).click()
@@ -34,9 +34,11 @@ test('empty URLs stay idle without a default lookup', async ({ page }) => {
 test('autocomplete, shortcuts and history preserve the empty home state', async ({ page }) => {
   await page.goto('/')
   const input = page.getByRole('combobox')
-  await expect(page.getByText('2 mục từ', { exact: true })).toBeVisible()
-  await page.keyboard.press('Control+k')
-  await expect(input).toBeFocused()
+  // The shortcut listener attaches after the first render, so an early press can be missed.
+  await expect(async () => {
+    await page.keyboard.press('Control+k')
+    await expect(input).toBeFocused({ timeout: 500 })
+  }).toPass()
   await input.fill('ex')
   await expect(page.getByRole('option')).toHaveCount(2)
   await input.press('ArrowDown')
@@ -62,23 +64,26 @@ test('autocomplete, shortcuts and history preserve the empty home state', async 
 
 test('home lists recent lookups, which can be cleared', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Gõ một từ tiếng Anh để bắt đầu' })).toBeVisible()
+  const recent = page.getByRole('region', { name: 'Tra gần đây' })
+  await expect(page.getByRole('combobox')).toBeVisible()
+  await expect(recent).toHaveCount(0)
   await page.goto('/?q=excellent')
   await expect(page).toHaveTitle('excellent · Lexi')
   await page.goto('/?q=example')
   await expect(page.getByRole('heading', { name: 'example', exact: true })).toBeVisible()
+  await expect(page.getByRole('banner').getByRole('group', { name: 'Chọn từ điển' })).toHaveCount(0)
+  await expect(page.getByRole('main').getByRole('group', { name: 'Chọn từ điển' })).toBeVisible()
   await page.goto('/')
   await expect(page).toHaveTitle('Lexi · Từ điển Anh–Việt, Nhật–Việt')
-  const recent = page.getByRole('region', { name: 'Tra gần đây' })
   await expect(recent.getByRole('button').filter({ hasNotText: 'Xoá' })).toHaveText(['example', 'excellent'])
   await recent.getByRole('button', { name: 'excellent' }).click()
   await expect(page.getByRole('heading', { name: 'excellent', exact: true })).toBeVisible()
   await page.goBack()
   await page.getByRole('button', { name: 'Xoá lịch sử' }).click()
-  await expect(page.getByRole('heading', { name: 'Gõ một từ tiếng Anh để bắt đầu' })).toBeVisible()
+  await expect(recent).toHaveCount(0)
 })
 
-test('touch devices explain saved words without a keyboard shortcut', async ({ page }) => {
+test('touch devices hide the keyboard shortcut', async ({ page }) => {
   // This browser cannot emulate hover or pointer, so stub the query a phone actually matches.
   // Importing that string from the app would let a wrong query keep passing.
   await page.addInitScript(() => {
@@ -101,16 +106,14 @@ test('touch devices explain saved words without a keyboard shortcut', async ({ p
   // Wider than the narrow-layout breakpoint, so hiding depends on the pointer, not the width.
   await page.setViewportSize({ width: 820, height: 1180 })
   await page.goto('/')
-  await expect(page.locator('.home-hint')).toHaveText('Các từ bạn tra sẽ hiện ở đây.')
+  await expect(page.getByRole('combobox')).toBeVisible()
   await expect(page.locator('.keyboard-hint')).toBeHidden()
 })
 
-test('a fine pointer keeps the shortcut explanation at both window widths', async ({ page }) => {
+test('a fine pointer shows the shortcut only on wide windows', async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('.home-hint')).toContainText('ở bất kỳ đâu để tìm nhanh')
   await expect(page.locator('.keyboard-hint')).toBeVisible()
   await page.setViewportSize({ width: 390, height: 800 })
-  await expect(page.locator('.home-hint')).toContainText('ở bất kỳ đâu để tìm nhanh')
   await expect(page.locator('.keyboard-hint')).toBeHidden()
 })
 

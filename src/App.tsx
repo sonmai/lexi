@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import { EnglishResult } from './components/EnglishResult'
 import { JapaneseResult } from './components/JapaneseResult'
-import { SearchBox, shortcutLabel } from './components/SearchBox'
+import { SearchBox } from './components/SearchBox'
 import { JapanFlag, UnitedKingdomFlag } from './flags'
-import { useCoarsePointer } from './hooks/useCoarsePointer'
 import { useDictionaryIndex, useKanjiReadings, useSuggestions } from './hooks/useDictionaryIndex'
 import { useLookup } from './hooks/useLookup'
 import { clearLookups, useRecentLookups } from './hooks/useRecentLookups'
@@ -34,7 +33,6 @@ export default function App() {
   const similar = useSuggestions(mode, selectedWord, indexReady && notFound, 6, true)
   const { canSpeak, speak, speaking } = useSpeech()
   const recent = useRecentLookups(mode)
-  const coarsePointer = useCoarsePointer()
   const headword = result?.mode === 'en' ? result.entry.headword : result?.lookup.headword
 
   useEffect(() => {
@@ -66,8 +64,26 @@ export default function App() {
     searchInput.current?.focus()
   }
 
+  const home = !selectedWord
+  const modeSwitch = (
+    <div className="mode-switch" role="group" aria-label="Chọn từ điển">
+      {([['en', 'Anh–Việt', UnitedKingdomFlag], ['ja', 'Nhật–Việt', JapanFlag]] as const).map(([value, label, Flag]) => (
+        <button
+          key={value}
+          type="button"
+          className={'mode-option' + (mode === value ? ' mode-option-active' : '')}
+          aria-pressed={mode === value}
+          onClick={() => switchMode(value)}
+        >
+          <Flag />
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
-    <div className="app-shell">
+    <div className={'app-shell' + (home ? ' is-home' : '')}>
       <a className="skip-link" href="#dictionary-content">Bỏ qua điều hướng</a>
       <header className="site-header">
         <div className="header-inner">
@@ -85,63 +101,27 @@ export default function App() {
             onChoose={chooseWord}
             inputRef={searchInput}
           />
+          {home && modeSwitch}
         </div>
       </header>
 
       <main className="main-content" id="dictionary-content">
         <h1 className="sr-only">Lexi — từ điển Anh–Việt, Anh–Anh và Nhật–Việt</h1>
 
-        <div className="utility-row">
-          <div className="utility-start">
-            <div className="mode-switch" role="group" aria-label="Chọn từ điển">
-              {([['en', 'Anh–Việt', UnitedKingdomFlag], ['ja', 'Nhật–Việt', JapanFlag]] as const).map(([value, label, Flag]) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={'mode-option' + (mode === value ? ' mode-option-active' : '')}
-                  aria-pressed={mode === value}
-                  onClick={() => switchMode(value)}
-                >
-                  <Flag />
-                  {label}
-                </button>
-              ))}
-            </div>
-            <span className="word-count" key={mode}>
-              {index.status === 'error' ? 'Không thể tải danh sách từ'
-                : index.status === 'missing' ? 'Chưa có dữ liệu'
-                : indexReady ? index.count.toLocaleString('en') + ' mục từ' + (index.demo ? ' (bản demo)' : '')
-                : 'Đang tải dữ liệu...'}
-            </span>
-          </div>
-        </div>
+        {!home && <div className="utility-row">{modeSwitch}</div>}
         {errors.length > 0 && <p className="inline-error" role="alert">{errors.join(' ')}</p>}
 
-        {!selectedWord && (
+        {home && recent.length > 0 && (
           <section className="home" key={mode} aria-labelledby="home-heading">
-            {recent.length > 0 ? (
-              <>
-                <div className="home-heading">
-                  <h2 id="home-heading">Tra gần đây</h2>
-                  <button type="button" className="text-action" onClick={() => clearLookups(mode)}>Xoá lịch sử</button>
-                </div>
-                <div className="word-chips" lang={mode === 'ja' ? 'ja' : 'en'}>
-                  {recent.map((word) => (
-                    <button type="button" key={word} onClick={() => chooseWord(word)}>{word}</button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <h2 id="home-heading" className="home-title">
-                  {mode === 'ja' ? 'Gõ kanji, kana hoặc romaji để bắt đầu' : 'Gõ một từ tiếng Anh để bắt đầu'}
-                </h2>
-                <p className="home-hint">
-                  {!coarsePointer && <>Nhấn <kbd>{shortcutLabel}</kbd> ở bất kỳ đâu để tìm nhanh. </>}
-                  Các từ bạn tra sẽ hiện ở đây.
-                </p>
-              </>
-            )}
+            <div className="home-heading">
+              <h2 id="home-heading">Tra gần đây</h2>
+              <button type="button" className="text-action" onClick={() => clearLookups(mode)}>Xoá lịch sử</button>
+            </div>
+            <div className="word-chips" lang={mode === 'ja' ? 'ja' : 'en'}>
+              {recent.map((word) => (
+                <button type="button" key={word} onClick={() => chooseWord(word)}>{word}</button>
+              ))}
+            </div>
           </section>
         )}
 
