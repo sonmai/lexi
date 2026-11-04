@@ -23,12 +23,12 @@ Requires Node.js 22+ and Python 3.12+.
 
 ```bash
 npm install
-npm run build
-python3 scripts/test_dictionary.py
+npm test               # unit tests (Node) — npx playwright test for browser tests
+npm run build          # installs the data pinned in data.lock.json, then builds the app
 npm run preview
 ```
 
-To start the UI using the original 16 demo entries without downloading dictionaries, use `npm run dev` in a clean checkout or `LEXI_SKIP_IMPORT=1 npm run build` for the local demo build. The data importer runs automatically before production builds.
+To start the UI using the original 16 demo entries without downloading dictionaries, use `npm run dev` in a clean checkout or `LEXI_SKIP_IMPORT=1 npm run build` for the local demo build. Dictionary data is built by a separate workflow; see [Architecture](docs/ARCHITECTURE.md#data-pipeline). Without `data.lock.json`, the build falls back to importing from upstream sources (`npm run data:build`).
 
 ## Usage
 
@@ -36,7 +36,7 @@ To start the UI using the original 16 demo entries without downloading dictionar
 - Read English–Vietnamese and English–English meanings together.
 - View available UK/US IPA, word examples and source tags.
 - Use Web Speech system pronunciation, if supported.
-- Optional download for offline lookups. Browsers may evict cached data.
+- Optional download for offline lookups, per dictionary. A downloaded copy keeps working after data updates until you choose to update it. Browsers may evict cached data.
 
 ## Deployment
 
