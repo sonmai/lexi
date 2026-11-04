@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { loadKanjiReadings, onActiveDataChange, type Section } from '../dictionary-service'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { activeDataRevision, loadKanjiReadings, onActiveDataChange, type Section } from '../dictionary-service'
 import { loadIndex, suggestWords } from '../suggest-client'
 
 export interface IndexState {
@@ -9,18 +9,13 @@ export interface IndexState {
   error?: string
 }
 
-/** Increments when lookups for `section` switch to another data version. */
 function useDataRevision(section: Section): number {
-  const [revision, setRevision] = useState(0)
-  useEffect(() => onActiveDataChange((changed) => {
-    if (changed === section) setRevision((value) => value + 1)
-  }), [section])
-  return revision
+  return useSyncExternalStore(onActiveDataChange, () => activeDataRevision(section))
 }
 
 /** Loads a section's suggestion index the first time `enabled` is true, and again after a data update. */
 export function useDictionaryIndex(section: Section, enabled: boolean): IndexState {
-  const [state, setState] = useState<IndexState>({ status: 'idle', count: 0, demo: false })
+  const [loaded, setLoaded] = useState<IndexState | null>(null)
   const [requested, setRequested] = useState(enabled)
   if (enabled && !requested) setRequested(true)
   const revision = useDataRevision(section)
@@ -28,12 +23,11 @@ export function useDictionaryIndex(section: Section, enabled: boolean): IndexSta
   useEffect(() => {
     if (!requested) return
     let live = true
-    setState((previous) => previous.status === 'ready' ? previous : { ...previous, status: 'loading' })
     loadIndex(section).then((info) => {
-      if (live) setState(info ? { status: 'ready', ...info } : { status: 'missing', count: 0, demo: false })
+      if (live) setLoaded(info ? { status: 'ready', ...info } : { status: 'missing', count: 0, demo: false })
     }, (error) => {
       if (!live) return
-      setState({
+      setLoaded({
         status: 'error', count: 0, demo: false,
         error: error instanceof Error ? error.message : 'Không thể tải danh sách từ.',
       })
@@ -41,7 +35,9 @@ export function useDictionaryIndex(section: Section, enabled: boolean): IndexSta
     return () => { live = false }
   }, [section, requested, revision])
 
-  return state
+  if (!requested) return { status: 'idle', count: 0, demo: false }
+  // After a data update the previous index keeps answering until the new one is loaded.
+  return loaded ?? { status: 'loading', count: 0, demo: false }
 }
 
 export function useKanjiReadings(enabled: boolean): Record<string, string[]> {
@@ -60,23 +56,21 @@ export function useKanjiReadings(enabled: boolean): Record<string, string[]> {
 
 /** Prefix suggestions from the worker; keeps the previous list while a new query is pending. */
 export function useSuggestions(section: Section, input: string, ready: boolean, limit = 8) {
-  const [state, setState] = useState<{ section: Section; key: string; words: string[] }>({ section, key: '', words: [] })
-  const key = input.trim() ? input + '\n' + limit : ''
+  const [answered, setAnswered] = useState<{ section: Section; key: string; words: string[] } | null>(null)
+  const key = ready && input.trim() ? input + '\n' + limit : ''
 
   useEffect(() => {
-    if (!ready || !key) {
-      setState({ section, key, words: [] })
-      return
-    }
+    if (!key) return
     let live = true
     suggestWords(section, input, limit).then((words) => {
-      if (live) setState({ section, key, words })
+      if (live) setAnswered({ section, key, words })
     }, () => {
-      if (live) setState({ section, key, words: [] })
+      if (live) setAnswered({ section, key, words: [] })
     })
     return () => { live = false }
-  }, [section, input, key, ready, limit])
+  }, [section, input, key, limit])
 
-  const current = state.section === section
-  return { words: current ? state.words : [], pending: !current || state.key !== key }
+  if (!key) return { words: [], pending: false }
+  const current = answered?.section === section
+  return { words: current ? answered.words : [], pending: !current || answered.key !== key }
 }

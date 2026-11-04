@@ -6,33 +6,23 @@ import type { Route } from './useRoute'
 export type LookupResult = { mode: 'en'; entry: DictionaryEntry } | { mode: 'ja'; lookup: JapaneseLookup }
 
 export function useLookup({ word, mode }: Route) {
-  const [result, setResult] = useState<LookupResult | null>(null)
-  const [loading, setLoading] = useState(Boolean(word))
-  const [error, setError] = useState('')
+  const [answered, setAnswered] = useState<{ key: string; result: LookupResult | null; error: string } | null>(null)
+  const key = word ? mode + '\n' + word : ''
 
   useEffect(() => {
+    if (!key) return
     let live = true
-    setError('')
-    if (!word) {
-      setResult(null)
-      setLoading(false)
-      return
-    }
-    setLoading(true)
     const lookup: Promise<LookupResult | null> = mode === 'ja'
       ? lookupJapanese(word).then((found): LookupResult | null => found && { mode: 'ja', lookup: found })
       : lookupWord(word).then((found): LookupResult | null => found && { mode: 'en', entry: found })
-    lookup.then((found) => {
-      if (live) setResult(found)
+    lookup.then((result) => {
+      if (live) setAnswered({ key, result, error: '' })
     }, (failure) => {
-      if (!live) return
-      setResult(null)
-      setError(failure instanceof Error ? failure.message : 'Không thể tải định nghĩa.')
-    }).finally(() => {
-      if (live) setLoading(false)
+      if (live) setAnswered({ key, result: null, error: failure instanceof Error ? failure.message : 'Không thể tải định nghĩa.' })
     })
     return () => { live = false }
-  }, [word, mode])
+  }, [key, word, mode])
 
-  return { result, loading, error }
+  if (!key || answered?.key !== key) return { result: null, loading: Boolean(key), error: '' }
+  return { result: answered.result, loading: false, error: answered.error }
 }

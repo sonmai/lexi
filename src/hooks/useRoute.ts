@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { containsJapanese } from '../utils/japanese'
 
 export type Mode = 'en' | 'ja'
@@ -14,28 +14,42 @@ function readRoute(): Route {
   return { word, mode: params.get('lang') === 'ja' || containsJapanese(word) ? 'ja' : 'en' }
 }
 
-/** The looked-up word and dictionary, kept in the URL (`?q=…&lang=ja`) and restored on back/forward. */
-export function useRoute(): [Route, (next: Route, push: boolean) => void] {
-  const [route, setRoute] = useState(readRoute)
+/** Increments on every navigation, including Back/Forward to an identical URL. */
+let navigation = 0
+const listeners = new Set<() => void>()
 
-  useEffect(() => {
-    const sync = () => setRoute(readRoute())
-    window.addEventListener('popstate', sync)
-    return () => window.removeEventListener('popstate', sync)
-  }, [])
+function notify() {
+  navigation += 1
+  listeners.forEach((listener) => listener())
+}
 
-  const navigate = useCallback((next: Route, push: boolean) => {
-    const url = new URL(window.location.href)
-    if (next.word) url.searchParams.set('q', next.word)
-    else url.searchParams.delete('q')
-    if (next.mode === 'ja') url.searchParams.set('lang', 'ja')
-    else url.searchParams.delete('lang')
-    if (window.location.search !== url.search) {
-      if (push) window.history.pushState({}, '', url)
-      else window.history.replaceState({}, '', url)
-    }
-    setRoute(next)
-  }, [])
+function subscribe(listener: () => void) {
+  if (!listeners.size) window.addEventListener('popstate', notify)
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+    if (!listeners.size) window.removeEventListener('popstate', notify)
+  }
+}
 
-  return [route, navigate]
+/** Returns the navigation number of the new route. */
+export function navigate(next: Route, push: boolean): number {
+  const url = new URL(window.location.href)
+  if (next.word) url.searchParams.set('q', next.word)
+  else url.searchParams.delete('q')
+  if (next.mode === 'ja') url.searchParams.set('lang', 'ja')
+  else url.searchParams.delete('lang')
+  if (window.location.search !== url.search) {
+    if (push) window.history.pushState({}, '', url)
+    else window.history.replaceState({}, '', url)
+  }
+  notify()
+  return navigation
+}
+
+/** The looked-up word and dictionary, kept in the URL (`?q=…&lang=ja`). */
+export function useRoute(): { route: Route; navigation: number } {
+  const current = useSyncExternalStore(subscribe, () => navigation)
+  const route = useMemo(readRoute, [current])
+  return { route, navigation: current }
 }

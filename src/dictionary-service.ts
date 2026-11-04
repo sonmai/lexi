@@ -60,6 +60,7 @@ const DOWNLOAD_CONCURRENCY = 4
 let manifestPromise: Promise<DictionaryManifest | null> | null = null
 const shards = new Map<string, Promise<Record<string, unknown>>>()
 const listeners = new Set<(section: Section) => void>()
+const revisions: Record<Section, number> = { en: 0, ja: 0 }
 
 function isJson(response: Response): boolean {
   return (response.headers.get('content-type') || '').includes('json')
@@ -136,13 +137,21 @@ function setPinned<S extends Section>(section: S, manifest: SectionManifest<S> |
   else delete pinned[section]
   localStorage.setItem(PINNED_KEY, JSON.stringify(pinned))
   // A first pin is the deployed version already in use; only replacing or dropping one changes the data.
-  if (previous && previous !== manifest?.version) listeners.forEach((listener) => listener(section))
+  if (previous && previous !== manifest?.version) {
+    revisions[section] += 1
+    listeners.forEach((listener) => listener(section))
+  }
 }
 
 /** Called when lookups switch to another data version for a section. */
 export function onActiveDataChange(listener: (section: Section) => void): () => void {
   listeners.add(listener)
-  return () => listeners.delete(listener)
+  return () => { listeners.delete(listener) }
+}
+
+/** Increments whenever lookups for `section` switch to another data version. */
+export function activeDataRevision(section: Section): number {
+  return revisions[section]
 }
 
 async function activeSection<S extends Section>(section: S): Promise<SectionManifest<S> | null> {
