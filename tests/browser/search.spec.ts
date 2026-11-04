@@ -76,6 +76,42 @@ test('home lists recent lookups, which can be cleared', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Gõ một từ tiếng Anh để bắt đầu' })).toBeVisible()
 })
 
+test('touch devices explain saved words without a keyboard shortcut', async ({ page }) => {
+  // This browser cannot emulate hover or pointer, so stub the query a phone actually matches.
+  // Importing that string from the app would let a wrong query keep passing.
+  await page.addInitScript(() => {
+    const query = '(hover: none), (pointer: coarse)'
+    const real = window.matchMedia.bind(window)
+    window.matchMedia = (requested: string) => {
+      if (requested !== query) return real(requested)
+      return {
+        matches: true,
+        media: requested,
+        onchange: null,
+        addListener() {},
+        removeListener() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() { return false },
+      } as MediaQueryList
+    }
+  })
+  // Wider than the narrow-layout breakpoint, so hiding depends on the pointer, not the width.
+  await page.setViewportSize({ width: 820, height: 1180 })
+  await page.goto('/')
+  await expect(page.locator('.home-hint')).toHaveText('Các từ bạn tra sẽ hiện ở đây.')
+  await expect(page.locator('.keyboard-hint')).toBeHidden()
+})
+
+test('a fine pointer keeps the shortcut explanation at both window widths', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.home-hint')).toContainText('ở bất kỳ đâu để tìm nhanh')
+  await expect(page.locator('.keyboard-hint')).toBeVisible()
+  await page.setViewportSize({ width: 390, height: 800 })
+  await expect(page.locator('.home-hint')).toContainText('ở bất kỳ đâu để tìm nhanh')
+  await expect(page.locator('.keyboard-hint')).toBeHidden()
+})
+
 test('unknown words offer close spellings', async ({ page }) => {
   await page.goto('/?q=exampel')
   await expect(page.getByText('Có phải bạn muốn tìm:')).toBeVisible()

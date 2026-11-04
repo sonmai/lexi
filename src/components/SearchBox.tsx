@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { Search, X } from 'lucide-react'
+import { useCoarsePointer } from '../hooks/useCoarsePointer'
 import type { Mode } from '../hooks/useRoute'
 
 const isApple = /Mac|iPhone|iPad/.test(navigator.platform)
@@ -23,6 +24,7 @@ export function SearchBox({
   const [showSuggestions, setShowSuggestions] = useState(false)
   const root = useRef<HTMLFormElement>(null)
   const suggestionId = useId()
+  const coarsePointer = useCoarsePointer()
   const suggestionVisible = showSuggestions && query.trim().length > 0 && query !== lookedUp
 
   useEffect(() => {
@@ -117,7 +119,7 @@ export function SearchBox({
             <X size={18} strokeWidth={1.9} />
           </button>
         )}
-        <span className="keyboard-hint" aria-hidden="true">{shortcutLabel}</span>
+        {!coarsePointer && <span className="keyboard-hint" aria-hidden="true">{shortcutLabel}</span>}
         <button type="submit" className="lookup-submit" aria-label="Tra từ">
           <span>Tra</span>
           <Search size={19} aria-hidden="true" />
