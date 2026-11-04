@@ -195,6 +195,22 @@ def load_wordnet(path: Path, data: dict) -> int:
     print(f"Open English WordNet senses processed: {count:,}", flush=True)
     return count
 
+def utf16_order(text: str) -> bytes:
+    """Sort key matching JavaScript's UTF-16 string comparison, which the app's binary search uses."""
+    return text.encode("utf-16-be")
+
+def section_urls(section: dict) -> list[str]:
+    urls = [section["index"], *section["chunks"]]
+    return urls + [section["kanji"]] if section.get("kanji") else urls
+
+def add_sizes(manifest: dict) -> dict:
+    """Record each section's download size so the app can show it before an offline download."""
+    sections = [manifest] if manifest.get("index") else []
+    sections += [manifest["japanese"]] if manifest.get("japanese") else []
+    for section in sections:
+        section["bytes"] = sum((TARGET / url.removeprefix("/dictionary/")).stat().st_size for url in section_urls(section))
+    return manifest
+
 def shard_key(word: str) -> str:
     if not word or word[0] not in ALPHABET:
         return "other"
@@ -238,7 +254,7 @@ def main():
     manifest_path = TARGET / "manifest.json"
     manifest = json.loads(manifest_path.read_text("utf-8"))
     manifest["japanese"] = japanese
-    save_json(manifest_path, manifest)
+    save_json(manifest_path, add_sizes(manifest))
 
 def write_english(data: dict, version: str) -> None:
     if len(data) < 100_000 and os.getenv("LEXI_ALLOW_SMALL_DATASET") != "1":
@@ -251,7 +267,7 @@ def write_english(data: dict, version: str) -> None:
     chunks = sorted(shards)
     if TARGET.exists():
         shutil.rmtree(TARGET)
-    save_json(TARGET / "data" / version / "index.json", sorted(data))
+    save_json(TARGET / "data" / version / "index.json", sorted(data, key=utf16_order))
     asset_paths = []
     for part in chunks:
         path = TARGET / "data" / version / (part + ".json")

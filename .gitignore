@@ -3,6 +3,9 @@ test-results/
 playwright-report/
 dist/
 .vite/
+.cache/
+__pycache__/
+*.tsbuildinfo
 .DS_Store
 .env
 .env.*

@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm install
-      - run: node --experimental-strip-types --test tests/partOfSpeech.test.mjs tests/japanese.test.mjs
+      - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
       - run: npm run build

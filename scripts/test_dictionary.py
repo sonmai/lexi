@@ -16,7 +16,8 @@ index_path = ROOT.parent / manifest["index"].lstrip("/").replace("dictionary/", 
 index_path = ROOT / manifest["index"].removeprefix("/dictionary/")
 words = json.loads(index_path.read_text("utf-8"))
 assert len(words) == manifest["count"], (len(words), manifest["count"])
-assert words == sorted(set(words)), "Index must be sorted and unique"
+assert len(set(words)) == len(words), "Index must be unique"
+assert words == sorted(words, key=lambda word: word.encode("utf-16-be")), "Index must follow JavaScript UTF-16 order"
 expected = ["example", "run", "apple", "security", "look", "take", "balance"]
 assert all(w in words for w in expected), [w for w in expected if w not in words]
 
