@@ -2,7 +2,7 @@
 
 ## Intent
 
-Content-first, quiet, responsive dictionary UI. This is **a lookup tool, not a marketing landing page**. The only primary task is to search an English headword, read its Vietnamese and English definitions, and optionally play pronunciation or save dictionary data for offline use.
+Content-first, quiet, responsive dictionary UI. This is **a lookup tool, not a marketing landing page**. The only primary task is to search a headword, read its definitions, and optionally play pronunciation.
 
 ## Source
 
@@ -28,7 +28,7 @@ The generator selected **Minimalism & Swiss Style**. Its automatic generic landi
 | Selected surface | `#EEF2FF` | Autocomplete highlight |
 | Focus ring | `#6578D8` | Keyboard focus |
 
-Skill's generated palette was teal/orange and the type recommendation was Plus Jakarta Sans. **We retain the existing indigo identity and system UI font** to keep the one-accent UI coherent and avoid external font downloads for offline mode.
+Skill's generated palette was teal/orange and the type recommendation was Plus Jakarta Sans. **We retain the existing indigo identity and system UI font** to keep the one-accent UI coherent and avoid an external font download.
 
 ## Layout rules
 
@@ -40,7 +40,7 @@ Skill's generated palette was teal/orange and the type recommendation was Plus J
 - Maximum reading width is approximately 1024px.
 - Spacing uses a 4/8px rhythm, with roomier vertical separation between senses.
 - Examples are distinguished by a light left rule instead of tinted boxes.
-- Offline download remains discoverable but secondary to search.
+- Search stays primary. The dictionary switch and word count are the only controls beside it.
 
 ## Interaction and accessibility
 
@@ -54,6 +54,6 @@ Skill's generated palette was teal/orange and the type recommendation was Plus J
 
 ## QA
 
-Validate at 320, 375, 768, 1024 and 1440px, keyboard-only navigation, iPhone Safari, desktop Safari/Chrome, and with reduced motion. Search, suggestions, both language definitions, text-to-speech and offline download must continue to work.
+Validate at 320, 375, 768, 1024 and 1440px, keyboard-only navigation, iPhone Safari, desktop Safari/Chrome, and with reduced motion. Search, suggestions, both language definitions and text-to-speech must continue to work.
 
-This is a UI rework only: dictionary ingestion, licence information and offline cache logic remain untouched.
+This is a UI rework only: dictionary ingestion and licence information remain untouched.

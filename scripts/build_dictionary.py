@@ -204,7 +204,7 @@ def section_urls(section: dict) -> list[str]:
     return urls + [section["kanji"]] if section.get("kanji") else urls
 
 def add_sizes(manifest: dict) -> dict:
-    """Record each section's download size so the app can show it before an offline download."""
+    """Record each section's total size on the manifest."""
     sections = [manifest] if manifest.get("index") else []
     sections += [manifest["japanese"]] if manifest.get("japanese") else []
     for section in sections:

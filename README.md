@@ -1,6 +1,6 @@
-# Lexi — Offline-first Dictionary PWA
+# Lexi — Dictionary
 
-A personal, offline-first English–Vietnamese, English–English and Japanese–Vietnamese dictionary built with React, TypeScript, Vite, and Cloudflare Workers static assets.
+A personal English–Vietnamese, English–English and Japanese–Vietnamese dictionary built with React, TypeScript, Vite, and Cloudflare Workers static assets.
 
 **Live:** https://lexi.wellprep.top
 
@@ -15,7 +15,7 @@ The English dictionary has **200k+ words and phrases** from four attributed sour
 
 The **Japanese–Vietnamese dictionary** (about 234k entries) is searchable by kanji, kana or romaji: Vietnamese meanings from Bunchaway, Japanese definitions from Japanese Wiktionary, readings and parts of speech from JMdict, Hán Việt readings from KANJIDIC2 and example sentences from Tatoeba.
 
-The data is rebuilt from upstream weekly by a separate workflow and pinned for deployment in `data.lock.json` (see [Data updates](#data-updates)). Lexi displays English and Vietnamese sense lists independently, with a source label on each meaning. Examples from Skypedia may be generated and have not been independently verified. See [data provenance, licensing and offline technical notes](docs/DATA_SOURCES.md) and the [attribution page](public/sources.html).
+The data is rebuilt from upstream weekly by a separate workflow and pinned for deployment in `data.lock.json` (see [Data updates](#data-updates)). Lexi displays English and Vietnamese sense lists independently, with a source label on each meaning. Examples from Skypedia may be generated and have not been independently verified. See [data provenance and licensing](docs/DATA_SOURCES.md) and the [attribution page](public/sources.html).
 
 ## Usage
 
@@ -25,7 +25,6 @@ The data is rebuilt from upstream weekly by a separate workflow and pinned for d
 - Read Japanese entries with readings, parts of speech, Hán Việt, Japanese definitions and Tatoeba examples.
 - Share or bookmark lookups: `?q=example` or `?q=食べる&lang=ja`.
 - Use Web Speech system pronunciation, if supported.
-- Download each dictionary for offline use (about 82 MB English, 125 MB Japanese). A downloaded copy keeps working after data updates until you choose to update it. Browsers may evict cached data; on iPhone, add Lexi to the Home Screen to keep it longer.
 
 ## Local development
 
@@ -49,7 +48,7 @@ python3 scripts/test_dictionary.py         # checks on the installed English dat
 python3 scripts/test_japanese.py           # checks on the installed Japanese data
 ```
 
-See [Architecture](docs/ARCHITECTURE.md) for the code layout, data contract and offline design.
+See [Architecture](docs/ARCHITECTURE.md) for the code layout, data contract and caching.
 
 ## Deployment
 

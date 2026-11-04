@@ -29,41 +29,38 @@ async function serveDeployments(page: Page) {
   return deployment
 }
 
-const cachedPaths = (page: Page) => page.evaluate(async () => {
-  const cache = await caches.open('lexi-dictionary-v2')
-  return (await cache.keys()).map((request) => new URL(request.url).pathname).sort()
-})
-
-test('an offline copy stays in use after a deploy until the user updates it', async ({ page }) => {
+test('a lookup uses the deployed dictionary on the next visit', async ({ page }) => {
   const deployment = await serveDeployments(page)
-  await page.goto('/')
-  const offline = page.locator('.offline-action')
-  await expect(offline).toHaveText('Tải từ điển offline · 2 MB')
-  await offline.click()
-  await expect(offline).toHaveText('Đã tải offline')
-  await expect(offline).toBeDisabled()
-
-  deployment.version = 'v2'
   await page.goto('/?q=example')
   await expect(page.getByText('Nghĩa bản cũ')).toBeVisible()
-  await expect(offline).toHaveText('Cập nhật bản offline · 2 MB')
+  await expect(page.getByRole('button', { name: /offline/i })).toHaveCount(0)
 
-  await offline.click()
-  await expect(offline).toHaveText('Đã tải offline')
-  expect(await cachedPaths(page)).toEqual(['/dictionary/data/v2/ex.json', '/dictionary/data/v2/index.json'])
-  await page.reload()
-  await expect(page.getByText('Nghĩa bản mới')).toBeVisible()
-})
-
-test('an evicted offline copy falls back to the deployed data', async ({ page }) => {
-  const deployment = await serveDeployments(page)
-  await page.goto('/')
-  await page.locator('.offline-action').click()
-  await expect(page.locator('.offline-action')).toHaveText('Đã tải offline')
-
-  await page.evaluate(() => caches.delete('lexi-dictionary-v2'))
   deployment.version = 'v2'
   await page.goto('/?q=example')
   await expect(page.getByText('Nghĩa bản mới')).toBeVisible()
-  await expect(page.locator('.offline-action')).toHaveText('Tải từ điển offline · 2 MB')
+})
+
+test('a previously downloaded copy is discarded', async ({ page }) => {
+  const deployment = await serveDeployments(page)
+  deployment.version = 'v2'
+  await page.goto('/')
+  await page.evaluate(async () => {
+    localStorage.setItem('lexi-offline-v1', '{"en":{"version":"v1"}}')
+    const dictionary = await caches.open('lexi-dictionary-v2')
+    await dictionary.put('/dictionary/data/v1/ex.json', new Response('{}', {
+      headers: { 'content-type': 'application/json' },
+    }))
+    const manifest = await caches.open('lexi-manifest-v1')
+    await manifest.put('/dictionary/manifest.json', new Response('{}', {
+      headers: { 'content-type': 'application/json' },
+    }))
+  })
+
+  await page.goto('/?q=example')
+  await expect(page.getByText('Nghĩa bản mới')).toBeVisible()
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('lexi-offline-v1'))).toBeNull()
+  await expect.poll(() => page.evaluate(async () => {
+    const names = await caches.keys()
+    return names.filter((name) => name === 'lexi-dictionary-v2' || name === 'lexi-manifest-v1')
+  })).toEqual([])
 })

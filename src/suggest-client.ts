@@ -1,4 +1,4 @@
-import { onActiveDataChange, readIndex, type Section } from './dictionary-service'
+import { readIndex, type Section } from './dictionary-service'
 import type { SuggestRequest, SuggestResponse } from './suggest.worker'
 
 export interface IndexInfo {
@@ -38,7 +38,7 @@ function send(request: SuggestRequest, transfer: Transferable[] = []): Promise<S
   })
 }
 
-/** Loads a section's index into the worker once per data version; null when the section has no data. */
+/** Loads a section's index into the worker once per session; null when the section has no data. */
 export function loadIndex(section: Section): Promise<IndexInfo | null> {
   let loading = indexes.get(section)
   if (!loading) {
@@ -67,5 +67,3 @@ export async function similarWords(section: Section, input: string, limit = 6): 
   if (!input.trim() || !(await loadIndex(section))) return []
   return (await send({ type: 'similar', section, input, limit })).words ?? []
 }
-
-onActiveDataChange((section) => indexes.delete(section))

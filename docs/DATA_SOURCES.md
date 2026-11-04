@@ -44,9 +44,9 @@ Wiktionary definitions are matched by reading as well as spelling. A kana page h
 
 Lookup keys are NFKC-normalised, lower-cased and katakana-folded to hiragana, so タベル, ｺﾝﾋﾟｭｰﾀｰ and たべる share keys. Each key page lists up to 40 entries, common entries first. Pages are spread over 256 shards by FNV-1a hash (`/dictionary/data/ja-<version>/<hex>.json`, about 0.5 MB each); the index (display forms sorted in JavaScript UTF-16 order, ~8.7 MB / ~2 MB gzip) and Hán Việt map (`kanji.json`) load only when the Japanese mode is opened. The normalisation and hash are implemented twice, in `scripts/build_japanese.py` and `src/utils/japanese.ts`; `tests/japanese.test.mjs` checks they agree. The last local build produced **238,465 entries / 471,770 keys / 6,115 examples**.
 
-### Offline
+### Caching
 
-The app shell is precached separately from the data shards. The English and Japanese dictionaries are downloaded for offline use separately; the Japanese download includes its index, Hán Việt map and shards. Data chunks are partitioned into 2-character prefixes to avoid huge single downloads on iPhone. A complete download is pinned, so it keeps working after a new data version is deployed until the user updates it, and files of unused versions are deleted. Storage quotas, eviction, and caching differ between browsers, so an offline download is best-effort, not a promise of permanent storage. The Service Worker runtime cache and offline download code both use `lexi-dictionary-v2`.
+Dictionary files are static assets. A lookup reads `/dictionary/manifest.json` (revalidated on each visit) and then one content-addressed shard under `/dictionary/data/`. Those shard URLs are cached by the browser and Cloudflare as immutable; the app does not keep its own copy. Shards stay partitioned by prefix or hash so one request stays small. The suggestion index and, for Japanese, the Hán Việt map load when that dictionary is opened.
 
 ### Responsible quality improvements
 

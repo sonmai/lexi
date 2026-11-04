@@ -1,5 +1,5 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
-import { activeDataRevision, loadKanjiReadings, onActiveDataChange, type Section } from '../dictionary-service'
+import { useEffect, useState } from 'react'
+import { loadKanjiReadings, type Section } from '../dictionary-service'
 import { loadIndex, similarWords, suggestWords } from '../suggest-client'
 
 export interface IndexState {
@@ -9,16 +9,11 @@ export interface IndexState {
   error?: string
 }
 
-function useDataRevision(section: Section): number {
-  return useSyncExternalStore(onActiveDataChange, () => activeDataRevision(section))
-}
-
-/** Loads a section's suggestion index the first time `enabled` is true, and again after a data update. */
+/** Loads a section's suggestion index the first time `enabled` is true. */
 export function useDictionaryIndex(section: Section, enabled: boolean): IndexState {
   const [loaded, setLoaded] = useState<IndexState | null>(null)
   const [requested, setRequested] = useState(enabled)
   if (enabled && !requested) setRequested(true)
-  const revision = useDataRevision(section)
 
   useEffect(() => {
     if (!requested) return
@@ -33,16 +28,14 @@ export function useDictionaryIndex(section: Section, enabled: boolean): IndexSta
       })
     })
     return () => { live = false }
-  }, [section, requested, revision])
+  }, [section, requested])
 
   if (!requested) return { status: 'idle', count: 0, demo: false }
-  // After a data update the previous index keeps answering until the new one is loaded.
   return loaded ?? { status: 'loading', count: 0, demo: false }
 }
 
 export function useKanjiReadings(enabled: boolean): Record<string, string[]> {
   const [kanji, setKanji] = useState<Record<string, string[]>>({})
-  const revision = useDataRevision('ja')
   useEffect(() => {
     if (!enabled) return
     let live = true
@@ -50,7 +43,7 @@ export function useKanjiReadings(enabled: boolean): Record<string, string[]> {
       if (live) setKanji(readings)
     }, (error) => console.warn('Hán Việt readings unavailable:', error))
     return () => { live = false }
-  }, [enabled, revision])
+  }, [enabled])
   return kanji
 }
 
