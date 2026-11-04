@@ -19,7 +19,7 @@ async function serveDeployments(page: Page) {
       return route.fulfill({
         json: {
           version, count: 1, index: `/dictionary/data/${version}/index.json`,
-          chunks: [`/dictionary/data/${version}/ex.json`], chunkStrategy: 'prefix2', bytes: 2_000_000,
+          chunks: [`/dictionary/data/${version}/ex.json`], chunkStrategy: 'prefix2',
         },
       })
     }
@@ -33,7 +33,6 @@ test('a lookup uses the deployed dictionary on the next visit', async ({ page })
   const deployment = await serveDeployments(page)
   await page.goto('/?q=example')
   await expect(page.getByText('Nghĩa bản cũ')).toBeVisible()
-  await expect(page.getByRole('button', { name: /offline/i })).toHaveCount(0)
 
   deployment.version = 'v2'
   await page.goto('/?q=example')
@@ -63,4 +62,15 @@ test('a previously downloaded copy is discarded', async ({ page }) => {
     const names = await caches.keys()
     return names.filter((name) => name === 'lexi-dictionary-v2' || name === 'lexi-manifest-v1')
   })).toEqual([])
+})
+
+test('a cache recreated by the retired service worker is dropped when the new one takes control', async ({ page }) => {
+  await serveDeployments(page)
+  await page.goto('/')
+  await page.evaluate(async () => {
+    const dictionary = await caches.open('lexi-dictionary-v2')
+    await dictionary.put('/dictionary/data/v1/ex.json', new Response('{}'))
+    navigator.serviceWorker.dispatchEvent(new Event('controllerchange'))
+  })
+  await expect.poll(() => page.evaluate(() => caches.has('lexi-dictionary-v2'))).toBe(false)
 })

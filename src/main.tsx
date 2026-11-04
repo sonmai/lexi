@@ -5,6 +5,8 @@ import { forgetOfflineDictionary } from './dictionary-service'
 import './styles.css'
 
 forgetOfflineDictionary()
+// The retired service worker recreates its dictionary cache until the new worker takes control.
+navigator.serviceWorker?.addEventListener('controllerchange', forgetOfflineDictionary)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
