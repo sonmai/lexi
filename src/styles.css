@@ -352,6 +352,7 @@ a { color: inherit; text-decoration: none; }
 .japanese-details .detail-label { flex: none; color: var(--text-muted); font-size: 12px; font-weight: 620; }
 .japanese-details .han-viet { color: var(--accent); font-weight: 650; }
 .japanese-meanings { border-top: 1px solid var(--subtle-border); padding-top: 30px; }
+.japanese-monolingual { margin-top: 30px; padding-top: 24px; }
 .japanese-examples { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--subtle-border); }
 .japanese-examples h3 { margin: 0 0 4px; font-size: 15px; font-weight: 720; }
 .japanese-examples h3 span { margin-left: 8px; color: var(--text-muted); font-size: 12px; font-weight: 500; }

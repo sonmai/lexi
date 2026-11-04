@@ -3,9 +3,11 @@
 
 JMdict (CC BY-SA 4.0) supplies the entry structure, readings and parts of
 speech. Bunchaway (CC BY-SA 4.0) supplies Vietnamese meanings, keyed by written
-form; entries without a Vietnamese meaning are left out. KANJIDIC2 (CC BY-SA 4.0) supplies Sino-Vietnamese
-(Hán Việt) readings, and Tatoeba (CC BY 2.0 FR) supplies Japanese sentences
-with human Vietnamese translations, linked to words through its jpn_indices.
+form; entries without a Vietnamese meaning are left out. Japanese Wiktionary
+via kaikki.org (CC BY-SA 4.0) supplies monolingual Japanese definitions.
+KANJIDIC2 (CC BY-SA 4.0) supplies Sino-Vietnamese (Hán Việt) readings, and
+Tatoeba (CC BY 2.0 FR) supplies Japanese sentences with human Vietnamese
+translations, linked to words through its jpn_indices.
 
 Run directly to rebuild only the Japanese section of an existing build.
 """
@@ -13,6 +15,7 @@ from __future__ import annotations
 
 import bz2
 import csv
+import gzip
 import hashlib
 import json
 import os
@@ -33,6 +36,7 @@ JMDICT_BASE = f"https://github.com/scriptin/jmdict-simplified/releases/download/
 JMDICT_URL = os.getenv("LEXI_JMDICT_SOURCE", f"{JMDICT_BASE}/jmdict-eng-{JMDICT_RELEASE}.json.tgz")
 KANJIDIC_URL = os.getenv("LEXI_KANJIDIC_SOURCE", f"{JMDICT_BASE}/kanjidic2-all-{JMDICT_RELEASE}.json.tgz")
 BUNCHAWAY_URL = os.getenv("LEXI_BUNCHAWAY_SOURCE", "https://raw.githubusercontent.com/bunchaway/tu-dien-nhat-viet/main/final.csv")
+JAWIKTIONARY_URL = os.getenv("LEXI_JAWIKTIONARY_SOURCE", "https://kaikki.org/jawiktionary/raw-wiktextract-data.jsonl.gz")
 TATOEBA_BASE = "https://downloads.tatoeba.org/exports"
 TATOEBA_INDICES_URL = os.getenv("LEXI_TATOEBA_INDICES_SOURCE", f"{TATOEBA_BASE}/jpn_indices.tar.bz2")
 TATOEBA_JPN_URL = os.getenv("LEXI_TATOEBA_JPN_SOURCE", f"{TATOEBA_BASE}/per_language/jpn/jpn_sentences.tsv.bz2")
@@ -42,10 +46,14 @@ TATOEBA_LINKS_URL = os.getenv("LEXI_TATOEBA_LINKS_SOURCE", f"{TATOEBA_BASE}/per_
 SHARD_COUNT = 256
 MAX_ENTRIES_PER_KEY = 40
 MAX_EXAMPLES_PER_ENTRY = 3
+MAX_JAPANESE_DEFINITIONS = 12
 HIDDEN_FORM_TAGS = {"sK", "sk"}
+READING_PREFIX = re.compile(r"^[（(]([ぁ-ゖァ-ヺー・、]+)[）)]\s*")
+SEE_ALSO = re.compile(r"^「[^」]+」(を|も)?(参照|見よ)。?$")
 SOURCES = [
     {"id": "jmdict", "name": "JMdict via jmdict-simplified (EDRDG)", "url": "https://www.edrdg.org/jmdict/j_jmdict.html", "license": "CC BY-SA 4.0"},
     {"id": "bunchaway", "name": "Bunchaway Japanese–Vietnamese Dictionary", "url": "https://github.com/bunchaway/tu-dien-nhat-viet", "license": "CC BY-SA 4.0"},
+    {"id": "jawiktionary", "name": "Japanese Wiktionary via kaikki.org (Wiktextract)", "url": "https://ja.wiktionary.org/", "license": "CC BY-SA 4.0"},
     {"id": "kanjidic", "name": "KANJIDIC2 (EDRDG), Vietnamese readings by Minh Chau Pham", "url": "https://www.edrdg.org/kanjidic/kanjidic2.html", "license": "CC BY-SA 4.0"},
     {"id": "tatoeba", "name": "Tatoeba sentences and jpn_indices", "url": "https://tatoeba.org/", "license": "CC BY 2.0 FR"},
 ]
@@ -117,7 +125,86 @@ def load_hanviet(path: Path) -> dict[str, list[str]]:
     return result
 
 
-def build_entries(jmdict: dict, bunchaway: dict[str, list[str]]) -> list[dict]:
+def load_wiktionary(path: Path) -> dict[str, list[dict]]:
+    """Japanese-language records of Japanese Wiktionary, grouped by page title."""
+    result: dict[str, list[dict]] = defaultdict(list)
+    with gzip.open(path, "rt", encoding="utf-8") as stream:
+        for line in stream:
+            record = json.loads(line)
+            if record.get("lang_code") != "ja":
+                continue
+            senses, targets, links = [], [], 0
+            for sense in record.get("senses", []):
+                linked = [link["word"] for link in sense.get("form_of", []) + sense.get("alt_of", []) if link.get("word")]
+                targets += linked
+                links += bool(linked)
+                glosses = sense.get("glosses") or []
+                if glosses and glosses[-1].strip() and not SEE_ALSO.match(glosses[-1].strip()):
+                    senses.append(glosses[-1].strip())
+            if not senses:
+                continue
+            result[record["word"]].append({
+                "pos": record.get("pos"),
+                "kanji": {form["form"] for form in record.get("forms") or [] if "kanji" in form.get("tags", [])},
+                # Pages such as 食べる only point at the kana page (たべるの漢字表記).
+                "redirect": links == len(record["senses"]),
+                "targets": targets,
+                "senses": senses,
+            })
+    print(f"Japanese Wiktionary headwords: {len(result):,}", flush=True)
+    return result
+
+
+def japanese_definitions(word: dict, wiktionary: dict[str, list[dict]], owns) -> list[str]:
+    """Match Wiktionary records to one JMdict entry without leaking homographs' senses.
+
+    Kana pages hold one record per word with its kanji spelling (はし: 橋, 箸, 端),
+    and single-kanji pages prefix senses with the reading they belong to (気: （キ）).
+    Records that name neither are used only by the entry that owns the form.
+    """
+    kanji = [k["text"] for k in word["kanji"]]
+    readings = [k["text"] for k in word["kana"]]
+    keys = {normalize(reading) for reading in readings}
+    found: list[str] = []
+
+    def add(senses):
+        for sense in senses:
+            if sense not in found:
+                found.append(sense)
+
+    for reading in readings:
+        for record in wiktionary.get(reading, []):
+            if record["kanji"] & set(kanji):
+                add(record["senses"])
+    for form in kanji:
+        for record in wiktionary.get(form, []):
+            if record["redirect"]:
+                for target in record["targets"]:
+                    if target not in readings:
+                        continue
+                    for linked in wiktionary.get(target, []):
+                        if not linked["redirect"] and (form in linked["kanji"] or not linked["kanji"] and owns(form)):
+                            add(linked["senses"])
+            elif record["pos"] != "character":
+                current = None
+                for sense in record["senses"]:
+                    match = READING_PREFIX.match(sense)
+                    if match:
+                        current = {normalize(part) for part in re.split("[・、]", match.group(1)) if part}
+                        sense = sense[match.end():]
+                    # Single-kanji pages mix every reading (生: なま, セイ…), so their untagged senses are skipped.
+                    if sense and (current & keys if current is not None else len(form) > 1 and owns(form)):
+                        add([sense])
+    if not kanji or "uk" in word["sense"][0]["misc"]:
+        for reading in readings:
+            if owns(reading):
+                for record in wiktionary.get(reading, []):
+                    if not record["kanji"] and not record["redirect"]:
+                        add(record["senses"])
+    return found[:MAX_JAPANESE_DEFINITIONS]
+
+
+def build_entries(jmdict: dict, bunchaway: dict[str, list[str]], wiktionary: dict[str, list[dict]]) -> list[dict]:
     words = jmdict["words"]
     # Bunchaway is keyed by written form without a reading, so a form shared by
     # homographs (生 なま/せい/き) gives its meaning only to one owner entry:
@@ -149,6 +236,9 @@ def build_entries(jmdict: dict, bunchaway: dict[str, list[str]]) -> list[dict]:
             "vi": bunchaway[vi_form] if vi_form else [],
             "pos": list(dict.fromkeys(pos for sense in word["sense"] for pos in sense["partOfSpeech"])),
         }
+        definitions = japanese_definitions(word, wiktionary, lambda form: owner[form][2] == position)
+        if definitions:
+            entry["ja"] = definitions
         if any(k["common"] for k in word["kanji"] + word["kana"]):
             entry["common"] = True
         entries.append((entry, all_forms))
@@ -160,7 +250,7 @@ def build_entries(jmdict: dict, bunchaway: dict[str, list[str]]) -> list[dict]:
         entry = {"id": f"b{extra}", "forms": [head] if has_kanji(head) else [], "readings": [] if has_kanji(head) else [head], "vi": meanings, "pos": []}
         entries.append((entry, [head]))
         extra += 1
-    print(f"Japanese entries: {len(entries):,} ({extra:,} Bunchaway-only)", flush=True)
+    print(f"Japanese entries: {len(entries):,} ({extra:,} Bunchaway-only, {sum('ja' in e for e, _ in entries):,} with Japanese definitions)", flush=True)
     return entries
 
 
@@ -252,11 +342,12 @@ def build_pages(entries: list[tuple[dict, list[str]]]) -> tuple[dict[str, list[d
 
 
 def write_japanese(files: dict[str, Path], hashes: list[str]) -> dict:
-    version = hashlib.sha256(("".join(hashes) + ":lexi-ja-v2").encode()).hexdigest()[:12]
+    version = hashlib.sha256(("".join(hashes) + ":lexi-ja-v3").encode()).hexdigest()[:12]
     bunchaway = load_bunchaway(files["bunchaway"])
+    wiktionary = load_wiktionary(files["jawiktionary"])
     jmdict = read_tgz_json(files["jmdict"])
-    entries = build_entries(jmdict, bunchaway)
-    del jmdict, bunchaway
+    entries = build_entries(jmdict, bunchaway, wiktionary)
+    del jmdict, bunchaway, wiktionary
     attach_examples(entries, files)
     pages, display = build_pages(entries)
     hanviet = load_hanviet(files["kanjidic"])
@@ -296,6 +387,7 @@ def download_japanese(tmp: Path) -> tuple[dict[str, Path], list[str]]:
         "jmdict": (JMDICT_URL, tmp / "jmdict.json.tgz"),
         "kanjidic": (KANJIDIC_URL, tmp / "kanjidic2.json.tgz"),
         "bunchaway": (BUNCHAWAY_URL, tmp / "bunchaway.csv"),
+        "jawiktionary": (JAWIKTIONARY_URL, tmp / "jawiktionary.jsonl.gz"),
         "indices": (TATOEBA_INDICES_URL, tmp / "jpn_indices.tar.bz2"),
         "jpn": (TATOEBA_JPN_URL, tmp / "jpn_sentences.tsv.bz2"),
         "vie": (TATOEBA_VIE_URL, tmp / "vie_sentences.tsv.bz2"),

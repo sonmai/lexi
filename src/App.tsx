@@ -242,6 +242,22 @@ function JapaneseEntryView({
           ))}
         </ol>
       </section>
+      {entry.ja && entry.ja.length > 0 && (
+        <section className="japanese-meanings japanese-monolingual" aria-label="Nhật – Nhật">
+          <div className="definition-heading">
+            <h3>Nhật – Nhật</h3>
+            <span>Wiktionary</span>
+          </div>
+          <ol className="sense-list" lang="ja">
+            {entry.ja.map((definition, index) => (
+              <li className="sense-item" key={index}>
+                <span className="sense-index" aria-hidden="true">{index + 1}.</span>
+                <p className="sense-definition">{definition}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       {entry.examples && entry.examples.length > 0 && (
         <section className="japanese-examples" aria-label="Câu ví dụ">
           <h3>Ví dụ <span>Tatoeba</span></h3>

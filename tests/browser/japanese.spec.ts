@@ -5,6 +5,7 @@ const shardCount = 4
 const pages: Record<string, unknown[]> = {
   食べる: [{
     id: '1358280', forms: ['食べる'], readings: ['たべる'], common: true, vi: ['Ăn'], pos: ['v1', 'vt'],
+    ja: ['何かを、口から嚙んで飲み込む。'],
     examples: [{ ja: '朝食は何を食べたの？', vi: 'Bữa sáng bạn ăn gì?' }],
   }],
   はし: [
@@ -60,6 +61,14 @@ test('romaji input finds Japanese words with Vietnamese meanings and Hán Việt
   await expect(page.getByText('Động từ nhóm 2 · Ngoại động từ')).toBeVisible()
   await expect(page.getByText('Bữa sáng bạn ăn gì?')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Nhật – Anh' })).toHaveCount(0)
+  const monolingual = page.getByRole('region', { name: 'Nhật – Nhật' })
+  await expect(monolingual.getByText('何かを、口から嚙んで飲み込む。')).toBeVisible()
+})
+
+test('entries without Japanese definitions hide the Nhật – Nhật section', async ({ page }) => {
+  await page.goto('/?q=%E3%81%AF%E3%81%97&lang=ja')
+  await expect(page.getByRole('heading', { name: '橋', exact: true })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Nhật – Nhật' })).toHaveCount(0)
 })
 
 test('typing kana switches to Japanese and shows every homograph', async ({ page }) => {

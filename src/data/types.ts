@@ -24,7 +24,10 @@ export interface JapaneseExample {
   vi: string
 }
 
-/** Vietnamese meanings come from Bunchaway, forms and parts of speech from JMdict, examples from Tatoeba. */
+/**
+ * Vietnamese meanings come from Bunchaway, Japanese definitions from Japanese Wiktionary,
+ * forms and parts of speech from JMdict, examples from Tatoeba.
+ */
 export interface JapaneseEntry {
   id: string
   /** Written (kanji) forms, most common first; empty for kana-only words. */
@@ -32,6 +35,7 @@ export interface JapaneseEntry {
   readings: string[]
   common?: boolean
   vi: string[]
+  ja?: string[]
   /** JMdict part-of-speech codes across all senses, in order. */
   pos: string[]
   examples?: JapaneseExample[]
