@@ -1,16 +1,19 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import { EnglishResult } from './components/EnglishResult'
 import { JapaneseResult } from './components/JapaneseResult'
 import { OfflineButton } from './components/OfflineButton'
-import { SearchBox } from './components/SearchBox'
+import { SearchBox, shortcutLabel } from './components/SearchBox'
 import { JapanFlag, UnitedKingdomFlag } from './flags'
 import { useDictionaryIndex, useKanjiReadings, useSuggestions } from './hooks/useDictionaryIndex'
 import { useLookup } from './hooks/useLookup'
+import { clearLookups, useRecentLookups } from './hooks/useRecentLookups'
 import { useOfflineDictionary } from './hooks/useOfflineDictionary'
 import { navigate, useRoute, type Mode } from './hooks/useRoute'
 import { useSpeech } from './hooks/useSpeech'
 import { containsJapanese, normalizeJapanese } from './utils/japanese'
+
+const DEFAULT_TITLE = document.title
 
 export default function App() {
   const { route, navigation } = useRoute()
@@ -28,12 +31,22 @@ export default function App() {
   const suggestions = useSuggestions(mode, query, indexReady)
   const nearby = useSuggestions(mode, selectedWord, indexReady, 10)
   const { result, loading, error: lookupError } = useLookup(route)
+  const notFound = Boolean(selectedWord) && !loading && !lookupError && !result
+  const similar = useSuggestions(mode, selectedWord, indexReady && notFound, 6, true)
   const offline = useOfflineDictionary()
-  const { canSpeak, speak } = useSpeech()
+  const { canSpeak, speak, speaking } = useSpeech()
+  const recent = useRecentLookups(mode)
+  const headword = result?.mode === 'en' ? result.entry.headword : result?.lookup.headword
+
+  useEffect(() => {
+    document.title = selectedWord ? `${headword ?? selectedWord} · Lexi` : DEFAULT_TITLE
+  }, [selectedWord, headword])
 
   const nearbyWords = mode === 'ja'
     ? nearby.words.filter((word) => normalizeJapanese(word) !== normalizeJapanese(selectedWord)).slice(0, 8)
     : nearby.words.filter((word) => word.toLowerCase() !== selectedWord.toLowerCase()).slice(0, 8)
+  // Longer words starting with what was typed come before spelling corrections.
+  const didYouMean = [...new Set([...nearbyWords, ...similar.words])].slice(0, 6)
   const emptyMessage = index.status === 'missing'
     ? 'Bản này chưa có dữ liệu tiếng Nhật.'
     : indexReady && !suggestions.pending ? 'Không tìm thấy từ bắt đầu bằng cụm này.' : 'Đang tải danh sách từ...'
@@ -67,6 +80,7 @@ export default function App() {
               setDraft({ text: value, navigation })
               if (mode === 'en' && containsJapanese(value)) switchMode('ja', value)
             }}
+            lookedUp={selectedWord}
             suggestions={suggestions.words}
             emptyMessage={emptyMessage}
             onChoose={chooseWord}
@@ -94,7 +108,7 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <span className="word-count">
+            <span className="word-count" key={mode}>
               {index.status === 'error' ? 'Không thể tải danh sách từ'
                 : index.status === 'missing' ? 'Chưa có dữ liệu'
                 : indexReady ? index.count.toLocaleString('en') + ' mục từ' + (index.demo ? ' (bản demo)' : '')
@@ -102,6 +116,7 @@ export default function App() {
             </span>
           </div>
           <OfflineButton
+            key={mode}
             section={mode}
             status={offline.status[mode]}
             download={offline.download}
@@ -115,9 +130,36 @@ export default function App() {
           </p>
         )}
 
+        {!selectedWord && (
+          <section className="home" key={mode} aria-labelledby="home-heading">
+            {recent.length > 0 ? (
+              <>
+                <div className="home-heading">
+                  <h2 id="home-heading">Tra gần đây</h2>
+                  <button type="button" className="text-action" onClick={() => clearLookups(mode)}>Xoá lịch sử</button>
+                </div>
+                <div className="word-chips" lang={mode === 'ja' ? 'ja' : 'en'}>
+                  {recent.map((word) => (
+                    <button type="button" key={word} onClick={() => chooseWord(word)}>{word}</button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 id="home-heading" className="home-title">
+                  {mode === 'ja' ? 'Gõ kanji, kana hoặc romaji để bắt đầu' : 'Gõ một từ tiếng Anh để bắt đầu'}
+                </h2>
+                <p className="home-hint">
+                  Nhấn <kbd>{shortcutLabel}</kbd> ở bất kỳ đâu để tìm nhanh. Các từ bạn tra sẽ hiện ở đây.
+                </p>
+              </>
+            )}
+          </section>
+        )}
+
         <div className="result-region" aria-live="polite" aria-busy={Boolean(selectedWord) && loading}>
           {!selectedWord ? null : loading ? (
-            <div className="result-message"><h2>Đang tra từ...</h2></div>
+            <div className="result-message result-loading"><h2>Đang tra từ...</h2></div>
           ) : lookupError ? (
             <div className="result-message" role="alert">
               <h2>Không thể tải định nghĩa</h2>
@@ -125,9 +167,11 @@ export default function App() {
             </div>
           ) : result?.mode === 'en' ? (
             <EnglishResult
+              key={result.entry.headword}
               entry={result.entry}
               speak={(accent) => speak(result.entry.headword, accent)}
               canSpeak={canSpeak}
+              speakingAccent={speaking?.text === result.entry.headword ? speaking.lang : undefined}
             />
           ) : result?.mode === 'ja' ? (
             <JapaneseResult
@@ -136,19 +180,31 @@ export default function App() {
               kanji={kanji}
               speak={(text) => speak(text, 'ja-JP')}
               canSpeak={canSpeak}
+              speakingText={speaking?.lang === 'ja-JP' ? speaking.text : undefined}
             />
           ) : (
             <div className="result-message">
               <BookOpen size={25} strokeWidth={1.6} aria-hidden="true" />
               <h2>Không tìm thấy từ</h2>
-              <p>Hãy kiểm tra chính tả hoặc chọn một từ trong danh sách gợi ý.</p>
+              {didYouMean.length > 0 ? (
+                <>
+                  <p>Có phải bạn muốn tìm:</p>
+                  <div className="word-chips" lang={mode === 'ja' ? 'ja' : 'en'}>
+                    {didYouMean.map((word) => (
+                      <button type="button" key={word} onClick={() => chooseWord(word)}>{word}</button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p>Hãy kiểm tra lại chính tả hoặc thử một từ khác.</p>
+              )}
             </div>
           )}
         </div>
         {selectedWord && !loading && result && nearbyWords.length > 0 && (
-          <nav className="related-lookup" aria-label="Các từ có cùng tiền tố">
+          <nav className="related-lookup" aria-label="Các từ có cùng tiền tố" key={selectedWord}>
             <h3>Các từ bắt đầu bằng “{result.mode === 'en' ? result.entry.headword : result.lookup.headword}”</h3>
-            <div className="related-words" lang={result.mode === 'ja' ? 'ja' : undefined}>
+            <div className="word-chips" lang={result.mode === 'ja' ? 'ja' : 'en'}>
               {nearbyWords.map((word) => (
                 <button type="button" key={word} onClick={() => chooseWord(word)}>
                   {word}

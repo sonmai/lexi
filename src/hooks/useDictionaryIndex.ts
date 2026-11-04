@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { activeDataRevision, loadKanjiReadings, onActiveDataChange, type Section } from '../dictionary-service'
-import { loadIndex, suggestWords } from '../suggest-client'
+import { loadIndex, similarWords, suggestWords } from '../suggest-client'
 
 export interface IndexState {
   status: 'idle' | 'loading' | 'ready' | 'missing' | 'error'
@@ -54,21 +54,25 @@ export function useKanjiReadings(enabled: boolean): Record<string, string[]> {
   return kanji
 }
 
-/** Prefix suggestions from the worker; keeps the previous list while a new query is pending. */
-export function useSuggestions(section: Section, input: string, ready: boolean, limit = 8) {
+/**
+ * Prefix suggestions, or with `similar` the closest spellings, from the worker;
+ * keeps the previous list while a new query is pending.
+ */
+export function useSuggestions(section: Section, input: string, ready: boolean, limit = 8, similar = false) {
   const [answered, setAnswered] = useState<{ section: Section; key: string; words: string[] } | null>(null)
   const key = ready && input.trim() ? input + '\n' + limit : ''
 
   useEffect(() => {
     if (!key) return
     let live = true
-    suggestWords(section, input, limit).then((words) => {
+    const search = similar ? similarWords : suggestWords
+    search(section, input, limit).then((words) => {
       if (live) setAnswered({ section, key, words })
     }, () => {
       if (live) setAnswered({ section, key, words: [] })
     })
     return () => { live = false }
-  }, [section, input, key, limit])
+  }, [section, input, key, limit, similar])
 
   if (!key) return { words: [], pending: false }
   const current = answered?.section === section
