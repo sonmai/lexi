@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import { EnglishResult } from './components/EnglishResult'
+import { LookupHeader } from './components/LookupHeader'
 import { JapaneseResult } from './components/JapaneseResult'
 import { SearchBox } from './components/SearchBox'
 import { JapanFlag, UnitedKingdomFlag } from './flags'
@@ -96,9 +97,14 @@ export default function App() {
   return (
     <div className={'app-shell' + (home ? ' is-home' : '')}>
       <a className="skip-link" href="#dictionary-content">Bỏ qua điều hướng</a>
-      <header className="site-header">
+      <LookupHeader home={home}>
         <div className="header-inner">
-          <a className="wordmark" href="/" aria-label="Lexi — trang chủ">
+          <a className="wordmark" href="/" aria-label="Lexi — trang chủ" onClick={(event) => {
+            if (home || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+            event.preventDefault()
+            navigate({ word: '', mode: 'en' }, true)
+            window.scrollTo({ top: 0, behavior: 'instant' })
+          }}>
             lexi<span key={keystrokes} className={keystrokes ? 'wordmark-dot-hop' : undefined}>.</span>
           </a>
           <SearchBox
@@ -119,7 +125,7 @@ export default function App() {
           />
           {home && modeSwitch}
         </div>
-      </header>
+      </LookupHeader>
 
       <main className="main-content" id="dictionary-content">
         <h1 className="sr-only">Lexi — từ điển Anh–Việt, Anh–Anh và Nhật–Việt</h1>
