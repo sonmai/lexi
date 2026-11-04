@@ -4,6 +4,7 @@ import { EnglishResult } from './components/EnglishResult'
 import { JapaneseResult } from './components/JapaneseResult'
 import { SearchBox, shortcutLabel } from './components/SearchBox'
 import { JapanFlag, UnitedKingdomFlag } from './flags'
+import { useCoarsePointer } from './hooks/useCoarsePointer'
 import { useDictionaryIndex, useKanjiReadings, useSuggestions } from './hooks/useDictionaryIndex'
 import { useLookup } from './hooks/useLookup'
 import { clearLookups, useRecentLookups } from './hooks/useRecentLookups'
@@ -33,6 +34,7 @@ export default function App() {
   const similar = useSuggestions(mode, selectedWord, indexReady && notFound, 6, true)
   const { canSpeak, speak, speaking } = useSpeech()
   const recent = useRecentLookups(mode)
+  const coarsePointer = useCoarsePointer()
   const headword = result?.mode === 'en' ? result.entry.headword : result?.lookup.headword
 
   useEffect(() => {
@@ -135,7 +137,8 @@ export default function App() {
                   {mode === 'ja' ? 'Gõ kanji, kana hoặc romaji để bắt đầu' : 'Gõ một từ tiếng Anh để bắt đầu'}
                 </h2>
                 <p className="home-hint">
-                  Nhấn <kbd>{shortcutLabel}</kbd> ở bất kỳ đâu để tìm nhanh. Các từ bạn tra sẽ hiện ở đây.
+                  {!coarsePointer && <>Nhấn <kbd>{shortcutLabel}</kbd> ở bất kỳ đâu để tìm nhanh. </>}
+                  Các từ bạn tra sẽ hiện ở đây.
                 </p>
               </>
             )}
