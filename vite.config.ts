@@ -2,6 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/** A navigation whose last segment is a file must reach the network, not the app shell. */
+export const navigateFallbackDenylist = [/\/[^/?]+\.[^/]+$/]
+
 export default defineConfig({
   worker: { format: 'es' },
   plugins: [
@@ -25,7 +28,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,json}'],
-        globIgnores: ['**/dictionary/**']
+        globIgnores: ['**/dictionary/**'],
+        navigateFallbackDenylist,
       }
     })
   ]
