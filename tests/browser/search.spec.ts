@@ -136,6 +136,32 @@ test('the border light runs on focus and loops only through a slow lookup', asyn
   await expect(page.locator('.search-led-busy')).toHaveCount(0)
 })
 
+test('the home placeholder types examples until the field is used', async ({ page }) => {
+  await page.goto('/')
+  const input = page.getByRole('combobox')
+  await expect(input).toHaveAttribute('placeholder', 'Thử tra: serendipity')
+  await input.focus()
+  await expect(input).toHaveAttribute('placeholder', 'Nhập từ tiếng Anh để tra cứu...')
+  await page.goto('/?q=example')
+  await page.waitForTimeout(800)
+  await expect(input).toHaveAttribute('placeholder', 'Nhập từ tiếng Anh để tra cứu...')
+})
+
+test('hovering the wordmark bounces its dot', async ({ page }) => {
+  await page.goto('/')
+  const dot = page.locator('.wordmark span')
+  await expect(dot).toHaveCSS('animation-name', 'none')
+  await page.locator('.wordmark').hover()
+  await expect(dot).toHaveCSS('animation-name', 'dot-bounce')
+})
+
+test('reduced motion keeps the plain placeholder', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+  await page.waitForTimeout(800)
+  await expect(page.getByRole('combobox')).toHaveAttribute('placeholder', 'Nhập từ tiếng Anh để tra cứu...')
+})
+
 test('unknown words offer close spellings', async ({ page }) => {
   await page.goto('/?q=exampel')
   await expect(page.getByText('Có phải bạn muốn tìm:')).toBeVisible()

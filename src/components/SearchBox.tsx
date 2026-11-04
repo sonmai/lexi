@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { Search, X } from 'lucide-react'
 import { useCoarsePointer } from '../hooks/useCoarsePointer'
+import { useReducedMotion } from '../hooks/useReducedMotion'
+import { useTypewriter } from '../hooks/useTypewriter'
 import type { Mode } from '../hooks/useRoute'
 import { SearchLed } from './SearchLed'
 
@@ -8,10 +10,12 @@ const isApple = /Mac|iPhone|iPad/.test(navigator.platform)
 const shortcutLabel = isApple ? '⌘ K' : 'Ctrl K'
 
 export function SearchBox({
-  mode, query, lookedUp, busy, onQueryChange, suggestions, emptyMessage, onChoose, inputRef,
+  mode, query, lookedUp, busy, examples, onQueryChange, suggestions, emptyMessage, onChoose, inputRef,
 }: {
   mode: Mode
   query: string
+  /** Words the placeholder types out while the field is empty and idle. */
+  examples?: readonly string[]
   /** The word whose result is showing; suggestions stay closed while the query still equals it. */
   lookedUp: string
   /** A lookup is in flight; a slow one keeps the border light running. */
@@ -26,6 +30,9 @@ export function SearchBox({
   const [activeIndex, setActiveIndex] = useState(0)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [ledLap, setLedLap] = useState(0)
+  const [focused, setFocused] = useState(false)
+  const reducedMotion = useReducedMotion()
+  const typedExample = useTypewriter(examples, !query && !focused && !reducedMotion)
   const root = useRef<HTMLFormElement>(null)
   const field = useRef<HTMLDivElement>(null)
   const suggestionId = useId()
@@ -93,15 +100,18 @@ export function SearchBox({
           spellCheck={false}
           value={query}
           lang={mode === 'ja' ? 'ja' : 'en'}
-          placeholder={mode === 'ja' ? 'Nhập kanji, kana hoặc romaji...' : 'Nhập từ tiếng Anh để tra cứu...'}
+          placeholder={typedExample !== null ? 'Thử tra: ' + typedExample
+            : mode === 'ja' ? 'Nhập kanji, kana hoặc romaji...' : 'Nhập từ tiếng Anh để tra cứu...'}
           aria-autocomplete="list"
           aria-expanded={suggestionVisible}
           aria-controls={suggestionVisible ? suggestionId : undefined}
           aria-activedescendant={suggestionVisible && suggestions.length ? suggestionId + '-' + activeIndex : undefined}
           onFocus={() => {
+            setFocused(true)
             setShowSuggestions(true)
             setLedLap((lap) => lap + 1)
           }}
+          onBlur={() => setFocused(false)}
           onChange={(event) => {
             setActiveIndex(0)
             setShowSuggestions(true)
