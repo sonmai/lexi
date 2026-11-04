@@ -54,3 +54,7 @@ This project does not use a backend, user accounts, external runtime dictionary 
 Skypedia states CC BY-SA 4.0 and supplies [attribution](public/dictionary-sources/SKYPEDIA_ATTRIBUTION.md). Its source material includes MinhQND and several other upstream datasets; its attribution document describes GPLv2-licensed OVDP as a reference for corrections. Please review upstream licence compatibility before republishing beyond the intended personal non-commercial use. Hosting publicly still amounts to distribution of downloaded dictionary files.
 
 The UI source code and third-party lexical content have different licence obligations.
+
+## License
+
+The source code is released under the [MIT License](LICENSE). The MIT License does not cover the dictionary data: generated files under `public/dictionary/`, the published data archives and the attribution files in `public/dictionary-sources/` keep their upstream licences (CC BY-SA 4.0, CC BY 4.0, CC BY 2.0 FR, GFDL and others), listed in [DATA_SOURCES.md](docs/DATA_SOURCES.md).
