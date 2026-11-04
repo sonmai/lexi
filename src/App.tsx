@@ -28,14 +28,15 @@ export default function App() {
   const [keystrokes, setKeystrokes] = useState(0)
   const searchInput = useRef<HTMLInputElement>(null)
 
-  const english = useDictionaryIndex('en', true)
-  const japanese = useDictionaryIndex('ja', mode === 'ja')
+  const [retryAttempt, setRetryAttempt] = useState(0)
+  const english = useDictionaryIndex('en', true, retryAttempt)
+  const japanese = useDictionaryIndex('ja', mode === 'ja', retryAttempt)
   const index = mode === 'ja' ? japanese : english
   const indexReady = index.status === 'ready'
   const kanji = useKanjiReadings(japanese.status === 'ready')
   const suggestions = useSuggestions(mode, query, indexReady)
   const nearby = useSuggestions(mode, selectedWord, indexReady, 10)
-  const { result, loading, error: lookupError } = useLookup(route)
+  const { result, loading, error: lookupError } = useLookup(route, retryAttempt)
   const notFound = Boolean(selectedWord) && !loading && !lookupError && !result
   const similar = useSuggestions(mode, selectedWord, indexReady && notFound, 6, true)
   const { canSpeak, speak, speaking } = useSpeech()
@@ -59,6 +60,9 @@ export default function App() {
   function chooseWord(word: string) {
     const term = word.trim()
     if (!term) return
+    if ((lookupError && term === selectedWord) || index.status === 'error') {
+      setRetryAttempt((attempt) => attempt + 1)
+    }
     navigate({ word: term, mode }, true)
   }
 
@@ -108,7 +112,7 @@ export default function App() {
               if (mode === 'en' && containsJapanese(value)) switchMode('ja', value)
             }}
             lookedUp={selectedWord}
-            suggestions={suggestions.words}
+            suggestions={suggestions.pending ? [] : suggestions.words}
             emptyMessage={emptyMessage}
             onChoose={chooseWord}
             inputRef={searchInput}
@@ -144,6 +148,7 @@ export default function App() {
             <div className="result-message" role="alert">
               <h2>Không thể tải định nghĩa</h2>
               <p>{lookupError}</p>
+              <button type="button" className="retry-lookup" onClick={() => chooseWord(selectedWord)}>Thử lại</button>
             </div>
           ) : result?.mode === 'en' ? (
             <EnglishResult

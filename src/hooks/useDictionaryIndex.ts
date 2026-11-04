@@ -10,7 +10,7 @@ export interface IndexState {
 }
 
 /** Loads a section's suggestion index the first time `enabled` is true. */
-export function useDictionaryIndex(section: Section, enabled: boolean): IndexState {
+export function useDictionaryIndex(section: Section, enabled: boolean, retryAttempt: number): IndexState {
   const [loaded, setLoaded] = useState<IndexState | null>(null)
   const [requested, setRequested] = useState(enabled)
   if (enabled && !requested) setRequested(true)
@@ -28,7 +28,7 @@ export function useDictionaryIndex(section: Section, enabled: boolean): IndexSta
       })
     })
     return () => { live = false }
-  }, [section, requested])
+  }, [section, requested, retryAttempt])
 
   if (!requested) return { status: 'idle', count: 0, demo: false }
   return loaded ?? { status: 'loading', count: 0, demo: false }

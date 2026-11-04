@@ -41,6 +41,12 @@ test('autocomplete, shortcuts and history preserve the empty home state', async 
   }).toPass()
   await input.fill('ex')
   await expect(page.getByRole('option')).toHaveCount(2)
+  await input.press('Enter')
+  await expect(page).toHaveURL(/\?q=ex$/)
+  await page.goBack()
+  await input.fill('ex')
+  await expect(page.getByRole('option')).toHaveCount(2)
+  await input.press('ArrowDown')
   await input.press('ArrowDown')
   await input.press('Enter')
   await expect(page.getByRole('heading', { name: 'excellent', exact: true })).toBeVisible()
@@ -197,4 +203,16 @@ test('deep links still load words and unknown words still show not found', async
   await expect(page.getByRole('heading', { name: 'example', exact: true })).toBeVisible()
   await page.goto('/?q=unknown')
   await expect(page.getByRole('heading', { name: 'Không tìm thấy từ', exact: true })).toBeVisible()
+})
+
+test('failed lookups can be retried with Tra or the inline action', async ({ page }) => {
+  let failures = 2
+  await page.route('**/dictionary/data/test/e.json', route =>
+    failures-- > 0 ? route.abort() : route.fallback())
+  await page.goto('/?q=example')
+  await expect(page.getByText('Không có kết nối mạng.')).toBeVisible()
+  await page.getByRole('button', { name: 'Tra từ', exact: true }).click()
+  await expect.poll(() => failures).toBe(0)
+  await page.getByRole('button', { name: 'Thử lại', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'example', exact: true })).toBeVisible()
 })
