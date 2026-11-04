@@ -20,7 +20,7 @@ japanese = json.loads((ROOT / "manifest.json").read_text("utf-8"))["japanese"]
 assert japanese["chunkStrategy"] == "fnv1a", japanese["chunkStrategy"]
 assert japanese["count"] >= 200_000, japanese["count"]
 assert len(japanese["chunks"]) == japanese["shardCount"], len(japanese["chunks"])
-assert {"jmdict", "bunchaway", "kanjidic", "tatoeba"} <= {s["id"] for s in japanese["sources"]}
+assert {"jmdict", "bunchaway", "jawiktionary", "kanjidic", "tatoeba"} <= {s["id"] for s in japanese["sources"]}
 
 words = read(japanese["index"])
 keys = [normalize(word) for word in words]
@@ -53,6 +53,8 @@ common = sum(1 for e in entries.values() if e.get("common"))
 assert common >= 22_000, common
 examples = sum(len(e.get("examples", [])) for e in entries.values())
 assert examples >= 3_000, examples
+monolingual = sum(1 for e in entries.values() if e.get("common") and e.get("ja"))
+assert monolingual >= 18_000, monolingual
 
 
 def page(word: str) -> list[dict]:
@@ -68,5 +70,18 @@ assert {"橋", "箸"} <= {e["forms"][0] for e in page("はし") if e["forms"]}
 # Homographs must not borrow another reading's Vietnamese meaning: 気 げ has none, so it is left out.
 assert not any(e["readings"] == ["げ"] for e in page("気"))
 
+
+def definitions(word: str, reading: str) -> str:
+    entry = next(e for e in page(word) if reading in e["readings"])
+    return " ".join(entry.get("ja", []))
+
+
+# Japanese definitions follow the kanji spelling on kana pages and the reading tag on single-kanji pages.
+assert "渡る" in definitions("橋", "はし") and "食器" not in definitions("橋", "はし")
+assert "食器" in definitions("箸", "はし") and "渡る" not in definitions("箸", "はし")
+assert "気体" in definitions("気", "き") and "（キ）" not in definitions("気", "き")
+assert "小生" not in definitions("生", "なま")
+assert "飲み込む" in definitions("食べる", "たべる")
+
 print("Verified:", japanese["count"], "Japanese entries;", len(words), "lookup keys;",
-      common, "common words;", examples, "Tatoeba examples")
+      common, "common words;", monolingual, "common words with Japanese definitions;", examples, "Tatoeba examples")
